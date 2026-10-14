@@ -1,0 +1,47 @@
+<svg width="808" height="632" viewBox="0 0 808 632" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bg4" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#064e3b"/>
+          <stop offset="50%" stop-color="#047857"/>
+          <stop offset="100%" stop-color="#0f766e"/>
+        </linearGradient>
+        <linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#34d399"/>
+          <stop offset="100%" stop-color="#6ee7b7"/>
+        </linearGradient>
+      </defs>
+      <rect width="808" height="632" fill="url(#bg4)"/>
+      
+      <g transform="translate(154, 80)">
+        <rect width="500" height="290" rx="16" fill="#022c22" fill-opacity="0.45" stroke="#34d399" stroke-opacity="0.25" stroke-width="1.5"/>
+        
+        <path d="M 60 220 Q 180 60 300 180 T 440 90" fill="none" stroke="#6ee7b7" stroke-width="4" stroke-dasharray="8 6"/>
+        
+        <g transform="translate(60, 220)">
+          <circle cx="0" cy="0" r="10" fill="#f43f5e"/>
+          <circle cx="0" cy="0" r="4" fill="#ffffff"/>
+        </g>
+        <g transform="translate(300, 180)">
+          <circle cx="0" cy="0" r="10" fill="#3b82f6"/>
+          <circle cx="0" cy="0" r="4" fill="#ffffff"/>
+        </g>
+        <g transform="translate(440, 90)">
+          <circle cx="0" cy="0" r="14" fill="#10b981"/>
+          <circle cx="0" cy="0" r="6" fill="#ffffff"/>
+        </g>
+        
+        <rect x="40" y="30" width="180" height="70" rx="10" fill="#ffffff" fill-opacity="0.95"/>
+        <text x="55" y="55" font-family="sans-serif" font-size="11" font-weight="bold" fill="#047857">ITINERARY EXPLORER</text>
+        <text x="55" y="78" font-family="sans-serif" font-size="16" font-weight="900" fill="#111827">7-Day Alps Route</text>
+      </g>
+      
+      <rect x="0" y="450" width="808" height="182" fill="#021c16" fill-opacity="0.95"/>
+      <line x1="0" y1="450" x2="808" y2="450" stroke="#34d399" stroke-opacity="0.6" stroke-width="2"/>
+      
+      <text x="64" y="510" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="800" font-size="34" fill="#ffffff">Triplo UX Case study</text>
+      <text x="64" y="550" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="500" font-size="18" fill="#6ee7b7">Travel Planning, Group Itineraries &amp; Discovery App</text>
+      <text x="64" y="585" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="600" font-size="13" fill="#a7f3d0" letter-spacing="1">BEHANCE CASE STUDY · 2023</text>
+      
+      <rect x="670" y="495" width="74" height="32" rx="4" fill="#34d399"/>
+      <text x="707" y="516" font-family="sans-serif" font-weight="bold" font-size="13" fill="#022c22" text-anchor="middle">VIEW</text>
+    </svg>
