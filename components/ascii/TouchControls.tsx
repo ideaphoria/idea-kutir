@@ -270,46 +270,72 @@ export default function TouchControls({
           VIRTUAL JOYSTICK (Bottom-Left Thumb Zone)
           ───────────────────────────────────────────────────────── */}
       <div
-        className="absolute bottom-6 left-6 pointer-events-auto touch-none"
+        className="absolute pointer-events-auto touch-none"
         style={{
           width: 124,
           height: 124,
+          bottom: "max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 0.5rem))",
+          left: "max(1.5rem, calc(env(safe-area-inset-left, 0px) + 0.5rem))",
         }}
       >
-        {/* Joystick Base Pad with Win95 / #0047BB Accents */}
+        {/* Joystick Base Pad: Translucent White with 40% Opacity Accents */}
         <div
           ref={joystickBaseRef}
           className="relative w-full h-full rounded-full flex items-center justify-center transition-opacity"
           style={{
-            backgroundColor: "rgba(0, 71, 187, 0.16)",
-            border: "2px solid rgba(0, 71, 187, 0.6)",
+            backgroundColor: isJoystickActive ? "rgba(255, 255, 255, 0.16)" : "rgba(255, 255, 255, 0.10)",
+            border: "2px solid rgba(255, 255, 255, 0.40)",
             backdropFilter: "blur(4px)",
-            boxShadow: "inset 0 0 12px rgba(0, 71, 187, 0.25), 0 2px 6px rgba(0,0,0,0.6)",
-            opacity: isJoystickActive ? 0.95 : 0.65,
+            boxShadow: "0 2px 10px rgba(0, 0, 0, 0.5), inset 0 0 14px rgba(255, 255, 255, 0.12)",
+            opacity: isJoystickActive ? 0.95 : 0.85,
           }}
         >
-          {/* Subtle Directional Notches */}
-          <span className="absolute top-1 text-[9px] text-[#0047BB] font-mono font-bold select-none opacity-60">
+          {/* Subtle Directional Notches with Text Shadow for Contrast */}
+          <span
+            className="absolute top-1.5 text-[9px] font-mono font-bold select-none"
+            style={{
+              color: "rgba(255, 255, 255, 0.75)",
+              textShadow: "0 1px 3px rgba(0, 0, 0, 0.9)",
+            }}
+          >
             ▲
           </span>
-          <span className="absolute bottom-1 text-[9px] text-[#0047BB] font-mono font-bold select-none opacity-60">
+          <span
+            className="absolute bottom-1.5 text-[9px] font-mono font-bold select-none"
+            style={{
+              color: "rgba(255, 255, 255, 0.75)",
+              textShadow: "0 1px 3px rgba(0, 0, 0, 0.9)",
+            }}
+          >
             ▼
           </span>
-          <span className="absolute left-1 text-[9px] text-[#0047BB] font-mono font-bold select-none opacity-60">
+          <span
+            className="absolute left-1.5 text-[9px] font-mono font-bold select-none"
+            style={{
+              color: "rgba(255, 255, 255, 0.75)",
+              textShadow: "0 1px 3px rgba(0, 0, 0, 0.9)",
+            }}
+          >
             ◀
           </span>
-          <span className="absolute right-1 text-[9px] text-[#0047BB] font-mono font-bold select-none opacity-60">
+          <span
+            className="absolute right-1.5 text-[9px] font-mono font-bold select-none"
+            style={{
+              color: "rgba(255, 255, 255, 0.75)",
+              textShadow: "0 1px 3px rgba(0, 0, 0, 0.9)",
+            }}
+          >
             ▶
           </span>
 
-          {/* Draggable Knob */}
+          {/* Draggable Knob: White 40% Opacity */}
           <div
             className="w-12 h-12 rounded-full flex items-center justify-center pointer-events-none select-none shadow-md"
             style={{
               transform: `translate(${knobPos.x}px, ${knobPos.y}px)`,
-              backgroundColor: isJoystickActive ? "#0047BB" : "#1a5ec9",
-              border: "2px solid #ffffff",
-              boxShadow: "0 2px 5px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.6)",
+              backgroundColor: isJoystickActive ? "rgba(255, 255, 255, 0.60)" : "rgba(255, 255, 255, 0.40)",
+              border: "2px solid rgba(255, 255, 255, 0.85)",
+              boxShadow: "0 2px 6px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.7)",
               transition: isJoystickActive ? "none" : "transform 0.15s ease-out",
             }}
           >
@@ -323,7 +349,13 @@ export default function TouchControls({
           MOBILE INTERACTION BUTTON (Visible when near clickable object)
           ───────────────────────────────────────────────────────── */}
       {hoveredObject && (
-        <div className="absolute bottom-8 right-6 pointer-events-auto">
+        <div
+          className="absolute pointer-events-auto"
+          style={{
+            bottom: "max(2rem, calc(env(safe-area-inset-bottom, 0px) + 0.5rem))",
+            right: "max(1.5rem, calc(env(safe-area-inset-right, 0px) + 0.5rem))",
+          }}
+        >
           <button
             type="button"
             data-touch-bypass="true"

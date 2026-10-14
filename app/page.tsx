@@ -19,7 +19,7 @@ const AsciiHouse = dynamic(() => import("@/components/ascii/AsciiHouse"), {
 
 export default function Home() {
   return (
-    <main className="w-full h-screen overflow-hidden bg-[#060605]">
+    <main className="fixed inset-0 w-full h-full overflow-hidden bg-[#060605]">
       <AsciiHouse />
     </main>
   );

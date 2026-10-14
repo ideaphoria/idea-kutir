@@ -17,6 +17,8 @@ interface AsciiHUDProps {
   onOpenNavigation?: () => void;
   collectedCount?: number;
   toastMessage?: string | null;
+  hasEnteredHouse?: boolean;
+  onEnterHouse?: () => void;
 }
 
 export default function AsciiHUD({
@@ -32,6 +34,8 @@ export default function AsciiHUD({
   onOpenNavigation,
   collectedCount = 0,
   toastMessage = null,
+  hasEnteredHouse = false,
+  onEnterHouse,
 }: AsciiHUDProps) {
   const currentRoom = HOUSE_ROOMS_3D[telemetry.currentRoomId] || HOUSE_ROOMS_3D.exterior;
   const [isLegendMinimized, setIsLegendMinimized] = useState(() => {
@@ -44,7 +48,15 @@ export default function AsciiHUD({
   const floorLabel = currentRoom.level === "exterior" ? "Outside" : "Ground Floor";
 
   return (
-    <div className="absolute inset-0 pointer-events-none select-none font-mono text-xs flex flex-col justify-between p-2 sm:p-4 md:p-6 text-[#d8d3c7]">
+    <div
+      className="absolute inset-0 pointer-events-none select-none font-mono text-xs flex flex-col justify-between p-2 sm:p-4 md:p-6 text-[#d8d3c7]"
+      style={{
+        paddingTop: "max(0.5rem, env(safe-area-inset-top, 0px))",
+        paddingBottom: "max(0.5rem, env(safe-area-inset-bottom, 0px))",
+        paddingLeft: "max(0.5rem, env(safe-area-inset-left, 0px))",
+        paddingRight: "max(0.5rem, env(safe-area-inset-right, 0px))",
+      }}
+    >
       {/* ─────────────────────────────────────────────────────────────
           TOP BAR: RETRO WINDOWS 95 TOOLBAR & CONTROLS
           ───────────────────────────────────────────────────────────── */}
@@ -168,14 +180,13 @@ export default function AsciiHUD({
         {telemetry.currentRoomId === "exterior" &&
           telemetry.z >= 0.5 &&
           !telemetry.isLocked &&
+          !hasEnteredHouse &&
           mode === "wander" &&
           !isInspecting &&
           !hoveredObject && (
           <div
-            onClick={onRequestPointerLock}
-            role="button"
-            tabIndex={0}
-            className="mt-6 pointer-events-auto cursor-pointer"
+            className="mt-6 pointer-events-auto z-30"
+            data-touch-bypass="true"
           >
             <div className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black p-4 shadow-[2px_2px_0px_rgba(0,0,0,0.7)] text-center max-w-sm font-sans">
               <div className="bg-gradient-to-r from-[#000080] to-[#1084d0] text-white text-xs font-bold px-2 py-1 mb-2.5 select-none">
@@ -186,9 +197,22 @@ export default function AsciiHUD({
                   Click anywhere or press WASD to start exploring the house.
                 </p>
               </div>
-              <div className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black active:border-t-black active:border-l-black active:border-b-white active:border-r-white py-1 px-4 text-xs font-bold text-black shadow-sm inline-block cursor-pointer select-none">
+              <button
+                type="button"
+                data-touch-bypass="true"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEnterHouse ? onEnterHouse() : onRequestPointerLock();
+                }}
+                onTouchEnd={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onEnterHouse ? onEnterHouse() : onRequestPointerLock();
+                }}
+                className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black active:border-t-black active:border-l-black active:border-b-white active:border-r-white py-1 px-4 text-xs font-bold text-black shadow-sm inline-block cursor-pointer select-none"
+              >
                 [ ENTER HOUSE ]
-              </div>
+              </button>
             </div>
           </div>
         )}

@@ -267,6 +267,7 @@ export default function DialogueBox({
           border: "2px solid",
           borderColor: "#ffffff #000000 #000000 #ffffff",
           outline: "1px solid #dfdfdf",
+          marginBottom: "env(safe-area-inset-bottom, 0px)",
         }}
       >
       {/* Classic Windows 95/98 Navy Title Bar */}

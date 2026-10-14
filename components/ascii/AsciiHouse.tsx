@@ -579,6 +579,20 @@ export default function AsciiHouse() {
     }
   }, [isFullScreenModalOpen, introStage]);
 
+  const [hasEnteredHouse, setHasEnteredHouse] = useState<boolean>(false);
+
+  // Physical threshold entry: If player crosses the entrance threshold into the house (z < 0.5 or interior room), mark as entered
+  useEffect(() => {
+    if (telemetry.currentRoomId !== "exterior" || telemetry.z < 0.5) {
+      setHasEnteredHouse(true);
+    }
+  }, [telemetry.currentRoomId, telemetry.z]);
+
+  const handleEnterHouse = useCallback(() => {
+    setHasEnteredHouse(true);
+    handleRequestPointerLock();
+  }, [handleRequestPointerLock]);
+
   // Full-screen modals, opening introduction, and dialogues disable navigation and exit pointer lock
   useEffect(() => {
     if (navigatorRef.current) {
@@ -2953,14 +2967,28 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
       if (!container) return;
       const width = container.clientWidth;
       const height = container.clientHeight;
+      if (width === 0 || height === 0) return;
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
       effect.setSize(width, height);
     };
 
+    const handleOrientationChange = () => {
+      handleResize();
+      setTimeout(handleResize, 100);
+      setTimeout(handleResize, 300);
+    };
+
     const resizeObserver = new ResizeObserver(() => handleResize());
     resizeObserver.observe(container);
     window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleOrientationChange);
+    if (window.screen?.orientation) {
+      window.screen.orientation.addEventListener("change", handleOrientationChange);
+    }
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleResize);
+    }
 
     // ─────────────────────────────────────────────────────────────
     // CLEANUP
@@ -2969,6 +2997,13 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
       cancelAnimationFrame(animationFrameId);
       resizeObserver.disconnect();
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", handleOrientationChange);
+      if (window.screen?.orientation) {
+        window.screen.orientation.removeEventListener("change", handleOrientationChange);
+      }
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", handleResize);
+      }
       window.removeEventListener("click", handleCanvasArtworkClick);
       navigator.dispose();
 
@@ -2996,14 +3031,14 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
   }
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-[#050504] select-none touch-none">
+    <div className="relative w-full h-full min-h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#050504] select-none touch-none">
       {/* Landscape Orientation Welcome Prompt for Mobile Portrait Visitors */}
       <OrientationPrompt />
 
       {/* 3D ASCII Viewport Canvas Element */}
       <div
         ref={containerRef}
-        onClick={handleRequestPointerLock}
+        onClick={handleEnterHouse}
         className="w-full h-full cursor-crosshair touch-none"
         style={{ touchAction: "none" }}
       />
@@ -3024,6 +3059,8 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
         onToggleMode={handleToggleMode}
         onSelectRoom={handleSelectRoom}
         onRequestPointerLock={handleRequestPointerLock}
+        hasEnteredHouse={hasEnteredHouse}
+        onEnterHouse={handleEnterHouse}
         isInspecting={isAnyModalOpen}
         onInteract={handleInteract}
         onOpenInventory={() => {
