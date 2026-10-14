@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { PROJECTS, Project } from "@/data/house";
+import { BEHANCE_PROJECTS } from "@/components/ascii/ProjectDirectoryModal";
 
 export default function WorkPage() {
   const [activeTab, setActiveTab] = useState<"projects" | "skills" | "about" | "contact">("projects");
@@ -731,6 +732,72 @@ export default function WorkPage() {
                         </span>
                       </div>
                     </article>
+                  </div>
+                </div>
+
+                {/* C. Behance Production Case Studies (External Portfolios) */}
+                <div className="mt-6 pt-5 border-t-2 border-[#808080]">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">💼</span>
+                      <h2 className="font-bold text-sm text-black">
+                        Behance Production Case Studies ({BEHANCE_PROJECTS.length})
+                      </h2>
+                    </div>
+                    <a
+                      href="https://www.behance.net/AshaniNath"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-[#000080] font-bold hover:underline flex items-center gap-1"
+                    >
+                      <span>View profile on behance.net/AshaniNath</span>
+                      <span>↗</span>
+                    </a>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                    {BEHANCE_PROJECTS.map((project) => (
+                      <a
+                        key={project.id}
+                        href={project.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-[#c0c0c0] border-2 border-t-[#ffffff] border-l-[#ffffff] border-b-[#808080] border-r-[#808080] p-2.5 flex flex-col justify-between hover:bg-[#d4d0c8] transition-colors cursor-pointer shadow-xs group"
+                      >
+                        <div>
+                          {/* Thumbnail with exact 960x614 aspect ratio and contain fitting */}
+                          <div className="aspect-[960/614] bg-[#111] border-2 border-t-[#808080] border-l-[#808080] border-b-[#ffffff] border-r-[#ffffff] mb-2 overflow-hidden relative flex items-center justify-center">
+                            <img
+                              src={project.thumbnail}
+                              alt={project.title}
+                              className="w-full h-full object-contain group-hover:scale-[1.01] transition-transform duration-150"
+                            />
+                            <div className="absolute top-1.5 right-1.5 bg-black/80 text-white px-1.5 py-0.5 text-[9px] font-mono tracking-wider uppercase border border-white/20">
+                              {project.year}
+                            </div>
+                          </div>
+
+                          <div className="mt-1">
+                            <h3 className="font-bold text-xs text-black group-hover:text-[#000080] leading-tight">
+                              {project.title}
+                            </h3>
+                            <div className="text-[10px] text-[#555] mt-0.5 line-clamp-2">
+                              {project.subtitle}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-2.5 pt-2 border-t border-[#a0a0a0] flex items-center justify-between text-[10px]">
+                          <span className="bg-white px-1.5 py-0.2 border border-[#808080] font-mono text-[#333]">
+                            {project.category}
+                          </span>
+                          <span className="text-[#000080] font-bold group-hover:underline flex items-center gap-0.5">
+                            <span>Behance</span>
+                            <span>↗</span>
+                          </span>
+                        </div>
+                      </a>
+                    ))}
                   </div>
                 </div>
               </>

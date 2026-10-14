@@ -151,22 +151,17 @@ export default function DialogueBox({
   const handleButtonClick = useCallback(() => {
     if (!isOpen || !currentLine) return;
 
-    if (confirmButtonText) {
-      onComplete();
-      return;
-    }
-
     if (isLastNamePromptLine) {
       return;
     }
 
-    // Always advance to next line on button click
+    // Always advance to next line if more lines exist
     if (currentIndex + 1 < activeLines.length) {
       setCurrentIndex((prev) => prev + 1);
     } else {
       onComplete();
     }
-  }, [isOpen, currentLine, confirmButtonText, isLastNamePromptLine, currentIndex, activeLines.length, onComplete]);
+  }, [isOpen, currentLine, isLastNamePromptLine, currentIndex, activeLines.length, onComplete]);
 
   const handleAdvance = useCallback(() => {
     if (!isOpen || !currentLine) return;
@@ -423,7 +418,7 @@ export default function DialogueBox({
                   borderColor: "#ffffff #000000 #000000 #ffffff",
                 }}
               >
-                {confirmButtonText || "OK"}
+                {currentIndex + 1 < activeLines.length ? "Next" : (confirmButtonText || "OK")}
               </button>
               {showCancelButton && !hasNameInput && (
                 <button

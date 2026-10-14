@@ -15,6 +15,8 @@ export const ROOM_SHORTCUTS: { key: string; roomId: string; label: string }[] = 
   { key: "1", roomId: "exterior", label: "00 · The Grounds (Facade & Arrival)" },
   { key: "2", roomId: "entrance_hall", label: "01 · Entrance Hall (Axial Gallery)" },
   { key: "3", roomId: "living_room", label: "02 · The Living Room (Primary Chamber)" },
+  { key: "4", roomId: "study", label: "03 · The Study (Home Office & Terminal)" },
+  { key: "5", roomId: "art_room", label: "04 · The Art Room (Studio & Gallery Wall)" },
 ];
 
 export default function NavigationHUDModal({

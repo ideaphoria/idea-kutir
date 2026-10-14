@@ -1,4 +1,5 @@
 import { ROOMS, PROJECTS, COLLECTIBLE_OBJECTS, Project, CollectibleObject } from "./house";
+import { GALLERY_FRAMES } from "./gallery";
 
 export interface Room3D {
   id: string;
@@ -101,12 +102,83 @@ export const HOUSE_ROOMS_3D: Record<string, Room3D> = {
     doorways: [
       { x: 0, z: 0.0, width: 2.4, height: 3.2, orientation: "z", leadsTo: "exterior" },
       { x: -2.8, z: -18.0, width: 2.8, height: 3.2, orientation: "x", leadsTo: "living_room" },
+      { x: 2.8, z: -18.0, width: 2.8, height: 3.2, orientation: "x", leadsTo: "study" },
+      { x: 2.8, z: -7.5, width: 2.6, height: 3.2, orientation: "x", leadsTo: "art_room" },
     ],
     spawnPoint: {
       x: 0,
       y: 1.7,
       z: -3.0,
       yaw: 0,
+    },
+  },
+
+  study: {
+    id: "study",
+    number: "03",
+    name: "The Study",
+    subtitle: "Home Office & Digital Terminal",
+    discipline: "Digital Systems & Product Archive",
+    description: "An intimate architectural workspace positioned directly across the hallway from the Living Room. Contains an executive walnut desk, chair, and an interactive desktop computer workstation.",
+    atmosphericNote: "Warm pool of desk lamplight, dark walnut grain, interactive blue terminal glow.",
+    level: "ground",
+    primaryProjectId: "selected-ui-ux",
+    projectIds: ["selected-ui-ux"],
+    objectIds: ["obj-study-computer"],
+    bounds: {
+      minX: 2.8,
+      maxX: 11.8,
+      minZ: -23.0,
+      maxZ: -13.0,
+      floorY: 0,
+      ceilY: 4.2,
+    },
+    doorways: [
+      { x: 2.8, z: -18.0, width: 2.8, height: 3.2, orientation: "x", leadsTo: "entrance_hall" },
+    ],
+    spawnPoint: {
+      x: 6.5,
+      y: 1.7,
+      z: -18.0,
+      yaw: -Math.PI / 2, // Facing East towards the desk and computer workstation
+    },
+  },
+
+  art_room: {
+    id: "art_room",
+    number: "04",
+    name: "The Art Room",
+    subtitle: "Personal Studio & Gallery Wall",
+    discipline: "Visual Arts, Process & Physical Artifacts",
+    description: "A lived-in personal art studio directly adjacent to the Study. Contains a large worktable, easel with paints, a pinboard of sketches, and a substantial gallery wall of signature-blue frames.",
+    atmosphericNote: "Turpentine and linseed oil, natural daylight through the walkway window, vivid blue frames on the north wall.",
+    level: "ground",
+    projectIds: [],
+    objectIds: [
+      "gallery-frame-1",
+      "gallery-frame-2",
+      "gallery-frame-3",
+      "gallery-frame-4",
+      "gallery-frame-5",
+      "gallery-frame-6",
+      "gallery-frame-7",
+    ],
+    bounds: {
+      minX: 2.8,
+      maxX: 11.8,
+      minZ: -13.0,
+      maxZ: -3.0,
+      floorY: 0,
+      ceilY: 4.2,
+    },
+    doorways: [
+      { x: 2.8, z: -7.5, width: 2.6, height: 3.2, orientation: "x", leadsTo: "entrance_hall" },
+    ],
+    spawnPoint: {
+      x: 5.5,
+      y: 1.7,
+      z: -7.5,
+      yaw: -Math.PI / 2, // Facing East into the studio
     },
   },
 
@@ -219,6 +291,31 @@ export const HOUSE_OBJECTS_3D: InteractiveObject3D[] = [
     interactionRadius: 3.5,
     propKind: "exhibit",
   },
+
+  // Study / Home Office Interactive Workstation
+  {
+    id: "obj-study-computer",
+    roomId: "study",
+    name: "Terminal Workstation",
+    type: "Interactive Workstation",
+    description: "A desktop computer terminal resting on a solid walnut desk. The screen displays an active prompt in #0047BB connecting to the complete project directory.",
+    connectedProjectId: "selected-ui-ux",
+    position: [8.4, 1.2, -18.0],
+    interactionRadius: 2.8,
+    propKind: "terminal",
+  },
+
+  // Art Room Signature-Blue Gallery Frames (#0047BB)
+  ...GALLERY_FRAMES.map((gf) => ({
+    id: gf.id,
+    roomId: "art_room",
+    name: gf.title || "Gallery Frame Slot",
+    type: "Signature Blue Frame",
+    description: "An architectural frame finished in signature blue #0047BB mounted to the art studio gallery wall.",
+    position: gf.position,
+    interactionRadius: 3.2,
+    propKind: "exhibit" as const,
+  })),
 ];
 
 export function getProjectData(projectId?: string): Project | undefined {

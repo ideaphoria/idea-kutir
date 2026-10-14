@@ -205,3 +205,46 @@ export const PROFILE_EASTER_EGG_LINE_2: DialogueLine = {
   text: "keep marching home",
 };
 
+/**
+ * Study Computer first encounter dialogue (triggered once on first interaction).
+ * Exact wording:
+ * “Ah. Where all those very important things happen that people insist on calling work.”
+ * “She hasn't been here for a long time...”
+ */
+export const STUDY_COMPUTER_FIRST_ENCOUNTER_LINES: DialogueLine[] = [
+  {
+    speaker: "Master of the House",
+    text: "Ah. Where all those very important things happen that people insist on calling work.",
+  },
+  {
+    speaker: "Master of the House",
+    text: "She hasn't been here for a long time...",
+  },
+];
+
+/**
+ * Study Computer post-close dialogue (triggered once after closing the project viewer).
+ * Exact wording:
+ * “Well? Did you find something useful, or are we merely admiring the furniture?”
+ * CTA: "Moving on"
+ */
+export const STUDY_COMPUTER_AFTER_CLOSE_LINES: DialogueLine[] = [
+  {
+    speaker: "Master of the House",
+    text: "Well? Did you find something useful, or are we merely admiring the furniture?",
+  },
+];
+
+/**
+ * Empty Gallery Frame dialogue (triggered when interacting with an empty frame).
+ * Title: "GALLERY SLOT"
+ * Message: "This frame is waiting for its artwork."
+ * CTA: "OK"
+ */
+export const GALLERY_SLOT_EMPTY_LINES: DialogueLine[] = [
+  {
+    speaker: "GALLERY SLOT",
+    text: "This frame is waiting for its artwork.",
+  },
+];
+

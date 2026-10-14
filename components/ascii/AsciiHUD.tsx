@@ -233,7 +233,7 @@ export default function AsciiHUD({
                 <span className="text-[#555]">Blueprint Map</span>
               </div>
               <div className="flex justify-between">
-                <span className="font-bold">1 – 3</span>
+                <span className="font-bold">1 – 5</span>
                 <span className="text-[#555]">Quick Travel</span>
               </div>
               <div className="flex justify-between">

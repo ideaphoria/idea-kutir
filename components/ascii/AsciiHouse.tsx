@@ -20,10 +20,15 @@ import {
   getHostObjectCommentary,
   PROFILE_EASTER_EGG_LINE_1,
   PROFILE_EASTER_EGG_LINE_2,
+  STUDY_COMPUTER_FIRST_ENCOUNTER_LINES,
+  STUDY_COMPUTER_AFTER_CLOSE_LINES,
+  GALLERY_SLOT_EMPTY_LINES,
   DialogueLine,
 } from "@/data/hostDialogue";
+import { GALLERY_FRAMES, getGalleryFrame } from "@/data/gallery";
 import InventoryModal from "./InventoryModal";
 import NavigationHUDModal from "./NavigationHUDModal";
+import ProjectDirectoryModal from "./ProjectDirectoryModal";
 // import { skyShaderMaterial } from "./skyShader"; // sky shader removed
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 const houseGroup = new THREE.Group();
@@ -106,6 +111,23 @@ export default function AsciiHouse() {
   const [inspectedObject, setInspectedObject] = useState<InteractiveObject3D | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMapOpen, setIsMapOpen] = useState(false);
+  const [isProjectDirectoryOpen, setIsProjectDirectoryOpen] = useState(false);
+  const [hasEncounteredStudyComputer, setHasEncounteredStudyComputer] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return sessionStorage.getItem("house_study_computer_first_encounter") === "true";
+      } catch {}
+    }
+    return false;
+  });
+  const [hasSeenStudyComputerPostDialogue, setHasSeenStudyComputerPostDialogue] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return sessionStorage.getItem("house_study_computer_post_dialogue") === "true";
+      } catch {}
+    }
+    return false;
+  });
 
   // Mandatory Three-Stage Introduction State Machine
   // Transitions: welcome --OK--> instructions --OK--> warning --knock knock--> playing
@@ -121,6 +143,8 @@ export default function AsciiHouse() {
         sessionStorage.removeItem("house_dialogue_appearance_count");
         sessionStorage.removeItem("house_inspected_counts");
         sessionStorage.removeItem("house_profile_activation_count");
+        sessionStorage.removeItem("house_study_computer_first_encounter");
+        sessionStorage.removeItem("house_study_computer_post_dialogue");
       } catch {}
     }
   }, []);
@@ -332,10 +356,54 @@ export default function AsciiHouse() {
       setIsProfileOpen(true);
     } else if (target.id === "obj-hallway-map") {
       setIsMapOpen(true);
+    } else if (target.id === "obj-study-computer") {
+      if (!hasEncounteredStudyComputer) {
+        setHasEncounteredStudyComputer(true);
+        if (typeof window !== "undefined") {
+          try {
+            sessionStorage.setItem("house_study_computer_first_encounter", "true");
+          } catch {}
+        }
+        setHostDialogueConfig({
+          lines: STUDY_COMPUTER_FIRST_ENCOUNTER_LINES,
+          title: "Master of the House",
+          confirmButtonText: "OK",
+          showCancelButton: false,
+          hideCloseButton: true,
+          instantText: true,
+          onProceed: () => {
+            setHostDialogueConfig(null);
+            setIsProjectDirectoryOpen(true);
+          },
+        });
+      } else {
+        setIsProjectDirectoryOpen(true);
+      }
+    } else if (target.id.startsWith("gallery-frame-")) {
+      const frameConfig = getGalleryFrame(target.id);
+      if (frameConfig?.destinationUrl) {
+        window.open(frameConfig.destinationUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
+      if (!frameConfig?.imagePath) {
+        setHostDialogueConfig({
+          lines: GALLERY_SLOT_EMPTY_LINES,
+          title: "GALLERY SLOT",
+          confirmButtonText: "OK",
+          showCancelButton: false,
+          hideCloseButton: true,
+          instantText: true,
+          onProceed: () => {
+            setHostDialogueConfig(null);
+          },
+        });
+        return;
+      }
+      setInspectedObject(target);
     } else {
       setInspectedObject(target);
     }
-  }, [introStage, hostDialogueConfig, profileActivationCount, triggerProfileEasterEgg]);
+  }, [introStage, hostDialogueConfig, profileActivationCount, triggerProfileEasterEgg, hasEncounteredStudyComputer]);
 
   // Keep a stable ref to handleInteract so Three.js initialization effect NEVER re-runs on dialogue changes
   const handleInteractRef = useRef(handleInteract);
@@ -462,12 +530,38 @@ export default function AsciiHouse() {
     [hasMetHost, inspectedCounts, playerName, introStage]
   );
 
+  const handleCloseProjectDirectory = useCallback(() => {
+    setIsProjectDirectoryOpen(false);
+    if (!hasSeenStudyComputerPostDialogue) {
+      setHasSeenStudyComputerPostDialogue(true);
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem("house_study_computer_post_dialogue", "true");
+        } catch {}
+      }
+      setHostDialogueConfig({
+        lines: STUDY_COMPUTER_AFTER_CLOSE_LINES,
+        title: "Master of the House",
+        confirmButtonText: "Moving on",
+        showCancelButton: false,
+        hideCloseButton: true,
+        instantText: true,
+        onProceed: () => {
+          setHostDialogueConfig(null);
+        },
+      });
+    } else {
+      handleCloseObjectModal("obj-study-computer", "Terminal Workstation");
+    }
+  }, [hasSeenStudyComputerPostDialogue, handleCloseObjectModal]);
+
   // Full screen inspection modals that require pausing movement and freeing cursor
   const isFullScreenModalOpen =
     isInventoryOpen ||
     isNavHUDOpen ||
     isMapOpen ||
     isProfileOpen ||
+    isProjectDirectoryOpen ||
     !!inspectedObject;
 
   // Generic modal flag for HUD reticle / indicator display
@@ -517,7 +611,7 @@ export default function AsciiHouse() {
         return;
       }
 
-      // Quick room travel [ 1, 2, 3 ]
+      // Quick room travel [ 1, 2, 3, 4, 5 ]
       if (e.key === "1") {
         if (!inspectedObject && !isProfileOpen && !isInventoryOpen) {
           handleSelectRoom("exterior");
@@ -536,6 +630,18 @@ export default function AsciiHouse() {
           setIsNavHUDOpen(false);
           setIsMapOpen(false);
         }
+      } else if (e.key === "4") {
+        if (!inspectedObject && !isProfileOpen && !isInventoryOpen) {
+          handleSelectRoom("study");
+          setIsNavHUDOpen(false);
+          setIsMapOpen(false);
+        }
+      } else if (e.key === "5") {
+        if (!inspectedObject && !isProfileOpen && !isInventoryOpen) {
+          handleSelectRoom("art_room");
+          setIsNavHUDOpen(false);
+          setIsMapOpen(false);
+        }
       } else if (e.code === "KeyI") {
         e.preventDefault();
         setIsInventoryOpen((prev) => !prev);
@@ -543,15 +649,17 @@ export default function AsciiHouse() {
         setIsMapOpen(false);
         setInspectedObject(null);
         setIsProfileOpen(false);
+        setIsProjectDirectoryOpen(false);
       } else if (e.key === "Tab") {
         e.preventDefault();
         setIsNavHUDOpen((prev) => !prev);
         setIsInventoryOpen(false);
         setIsMapOpen(false);
+        setIsProjectDirectoryOpen(false);
         setInspectedObject(null);
         setIsProfileOpen(false);
       } else if (e.code === "KeyM") {
-        if (!inspectedObject && !isProfileOpen) {
+        if (!inspectedObject && !isProfileOpen && !isProjectDirectoryOpen) {
           e.preventDefault();
           setIsMapOpen((prev) => !prev);
           setIsNavHUDOpen(false);
@@ -564,6 +672,8 @@ export default function AsciiHouse() {
           handleCloseObjectModal("obj-hallway-portrait", "Resident Portrait");
         } else if (isMapOpen) {
           handleCloseObjectModal("obj-hallway-map", "Architectural Map");
+        } else if (isProjectDirectoryOpen) {
+          handleCloseProjectDirectory();
         } else {
           setIsInventoryOpen(false);
           setIsNavHUDOpen(false);
@@ -579,8 +689,10 @@ export default function AsciiHouse() {
     inspectedObject,
     isProfileOpen,
     isMapOpen,
+    isProjectDirectoryOpen,
     isInventoryOpen,
     handleSelectRoom,
+    handleCloseProjectDirectory,
     handleCloseObjectModal,
   ]);
 
@@ -681,6 +793,9 @@ export default function AsciiHouse() {
 
     container.innerHTML = "";
     container.appendChild(asciiDom);
+
+    // Gallery artwork 3D meshes for raycasting and mouse interaction
+    const galleryArtMeshes: THREE.Mesh[] = [];
 
     // ─────────────────────────────────────────────────────────────
     // 3. CONTROLS INITIALIZATION
@@ -1077,8 +1192,22 @@ export default function AsciiHouse() {
     // Hall North End Wall (deepest point of the axial corridor)
     addBox(5.6, 4.2, 0.6, 0.0, 2.1, -21.0, darkWallMaterial);
 
-    // East Wall (Solid wall, 0.5 thick)
-    addBox(0.5, 4.2, 21.0, 2.8, 2.1, -10.5, wallMaterial);
+    // East Wall (Hallway inner face at X = 2.56, back at X = 2.80, with Art Room aperture at Z = -7.5 and Study aperture at Z = -18.0)
+    addBox(0.24, 4.2, 6.2, 2.68, 2.1, -3.1, wallMaterial);       // South of Art Room (Z: 0.0 to -6.2)
+    addBox(0.24, 1.0, 2.6, 2.68, 3.7, -7.5, frameMaterial);      // Art Room doorway lintel header (Z: -6.2 to -8.8)
+    addBox(0.24, 4.2, 7.7, 2.68, 2.1, -12.65, wallMaterial);     // Wall between Art Room & Study (Z: -8.8 to -16.5)
+    addBox(0.24, 1.0, 3.0, 2.68, 3.7, -18.0, frameMaterial);     // Study doorway lintel header (Z: -16.5 to -19.5)
+    addBox(0.24, 4.2, 1.5, 2.68, 2.1, -20.25, wallMaterial);    // North of Study (Z: -19.5 to -21.0)
+
+    // Doorway Frame to Art Room (bridging X = 2.54 to 3.06 across opening Z: -6.2 to -8.8)
+    addBox(0.52, 3.2, 0.20, 2.80, 1.6, -6.2, frameMaterial); // South jamb post
+    addBox(0.52, 3.2, 0.20, 2.80, 1.6, -8.8, frameMaterial); // North jamb post
+    addBox(0.52, 0.15, 2.6, 2.80, 3.12, -7.5, frameMaterial); // Soffit trim
+
+    // Doorway Frame to Study (bridging X = 2.54 to 3.06 across opening Z: -16.5 to -19.5)
+    addBox(0.52, 3.2, 0.20, 2.80, 1.6, -16.5, frameMaterial); // South jamb post
+    addBox(0.52, 3.2, 0.20, 2.80, 1.6, -19.5, frameMaterial); // North jamb post
+    addBox(0.52, 0.15, 3.0, 2.80, 3.12, -18.0, frameMaterial); // Soffit trim
 
     // West Wall (with Living Room aperture at Z = -18.0)
     addBox(0.5, 4.2, 16.5, -2.8, 2.1, -8.25, wallMaterial); // South segment
@@ -1100,15 +1229,20 @@ export default function AsciiHouse() {
     // West wall baseboard (split to leave doorway Z: -16.5 to -19.5 completely unobstructed)
     addBox(0.08, 0.18, 16.4, -2.52, 0.09, -8.2, baseboardMaterial);   // South segment (Z: 0.0 to -16.4)
     addBox(0.08, 0.18, 1.4, -2.52, 0.09, -20.3, baseboardMaterial);   // North segment (Z: -19.6 to -21.0)
-    addBox(0.08, 0.18, 21.0, 2.52, 0.09, -10.5, baseboardMaterial);  // East wall baseboard
+    // East wall baseboard (split to leave Art Room doorway Z: -6.2 to -8.8 and Study doorway Z: -16.5 to -19.5 unobstructed)
+    addBox(0.08, 0.18, 6.1, 2.52, 0.09, -3.05, baseboardMaterial);    // South segment (Z: 0.0 to -6.1)
+    addBox(0.08, 0.18, 7.5, 2.52, 0.09, -12.65, baseboardMaterial);   // Middle segment (Z: -8.9 to -16.4)
+    addBox(0.08, 0.18, 1.4, 2.52, 0.09, -20.3, baseboardMaterial);    // North segment (Z: -19.6 to -21.0)
 
     // Hallway Crown Moulding Trim (crisp architectural lines running along the top of the walls)
     const crownTrimMaterial = new THREE.MeshLambertMaterial({ color: 0x2e2924 });
     addBox(0.10, 0.14, 21.0, -2.51, 4.03, -10.5, crownTrimMaterial); // West wall crown
     addBox(0.10, 0.14, 21.0, 2.51, 4.03, -10.5, crownTrimMaterial);  // East wall crown
 
-    // Flush Doorway Threshold Sill into Living Room (smooth level crossing)
-    addBox(0.6, 0.04, 3.0, -2.8, 0.02, -18.0, stepMaterial);
+    // Flush Doorway Threshold Sills into Living Room, Art Room and Study (smooth level crossing)
+    addBox(0.6, 0.04, 3.0, -2.8, 0.02, -18.0, stepMaterial); // Living Room threshold
+    addBox(0.52, 0.04, 2.6, 2.80, 0.02, -7.5, stepMaterial);  // Art Room threshold
+    addBox(0.52, 0.04, 3.0, 2.80, 0.02, -18.0, stepMaterial);  // Study threshold
 
     // ─── C. HALLWAY PHYSICAL WALL FIXTURES ───
     // 1. Framed Profile Portrait on West Wall (Inner wall face is at X = -2.55, Z = -8.0, Y = 1.85)
@@ -1301,11 +1435,11 @@ export default function AsciiHouse() {
       addBox(canopyRadius * 0.55, 0.75, canopyRadius * 0.55, x, trunkHeight + 2.05, z, treeCanopyMaterial1);
     }
 
-    // Place trees around the house
+    // Place trees around the house (keeping exterior well clear of Art Room and Study)
     addTree(-12, -8);
     addTree(-9, -4);
-    addTree(9, -4);
-    addTree(12, -8);
+    addTree(16.5, -4);
+    addTree(16.5, -10);
     // Tree relocated from behind/inside to the front lawn beside the central stone walkway
     addTree(-3.5, 6.5, 3.8, 2.5);
 
@@ -1698,6 +1832,676 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
     addBox(1.2, 0.08, 0.12, -10.0, 3.38, -24.54, interactiveCore);  // Lamp hood
     addBox(1.1, 0.02, 0.08, -10.0, 3.33, -24.54, interactiveGlow);  // Diffuser
 
+    // ─── D. STUDY / HOME OFFICE (Across Hallway from Living Room at X: 2.8 to 11.8, Z: -23.0 to -13.0) ───
+    const studyFloorMaterial = new THREE.MeshLambertMaterial({ color: 0x483a2c });
+    const studyCeilingMaterial = new THREE.MeshLambertMaterial({ color: 0x2e2722 });
+    const studyBeamMaterial = new THREE.MeshLambertMaterial({ color: 0x3d3024 });
+    const studyWallMaterial = new THREE.MeshLambertMaterial({ color: 0x6e6659 }); // Matches Living Room plaster brightness for clean midtone rendering
+    const studyBaseboardMaterial = new THREE.MeshLambertMaterial({ color: 0x28201a });
+    const studyCrownMaterial = new THREE.MeshLambertMaterial({ color: 0x342a22 });
+
+    // 1. Architecture: Floor & Ceiling
+    // Study Floor (elevated planks level with hallway)
+    addBox(9.0, 0.22, 10.0, 7.3, -0.01, -18.0, studyFloorMaterial);
+    // Study Ceiling (height 4.2m)
+    addBox(9.0, 0.20, 10.0, 7.3, 4.2, -18.0, studyCeilingMaterial);
+    // Exposed Ceiling Beams in Study
+    [-15.0, -18.0, -21.0].forEach((bz) => {
+      addBox(8.7, 0.28, 0.24, 7.4, 4.05, bz, studyBeamMaterial);
+    });
+
+    // 2. Enclosing Perimeter Walls (Seamless, Non-Overlapping Geometry)
+    // East Back Wall (X = 11.80)
+    addBox(0.48, 4.2, 10.0, 11.80, 2.1, -18.0, studyWallMaterial);
+    // North Wall (Z = -23.0, running from X = 3.04 to 11.80)
+    addBox(8.76, 4.2, 0.48, 7.42, 2.1, -23.0, studyWallMaterial);
+    // South Wall (Z = -13.0, running from X = 3.04 to 11.80, shared with Art Room)
+    addBox(8.76, 4.2, 0.24, 7.42, 2.1, -13.0, studyWallMaterial);
+
+    // West Partition Wall (Study side inner face at X = 3.04, thickness 0.24, back at X = 2.80)
+    // Meets Hallway East wall at X = 2.80 with ZERO Z-fighting overlap!
+    addBox(0.24, 4.2, 3.5, 2.92, 2.1, -14.75, studyWallMaterial); // South partition (Z: -13.0 to -16.5)
+    addBox(0.24, 1.0, 3.0, 2.92, 3.7, -18.0, frameMaterial);      // Doorway lintel Study face (Z: -16.5 to -19.5)
+    addBox(0.24, 4.2, 3.5, 2.92, 2.1, -21.25, studyWallMaterial); // North partition (Z: -19.5 to -23.0)
+
+    // Study Interior Baseboards
+    addBox(0.08, 0.18, 9.6, 11.52, 0.09, -18.0, studyBaseboardMaterial);  // East wall
+    addBox(8.4, 0.18, 0.08, 7.4, 0.09, -22.72, studyBaseboardMaterial);   // North wall
+    addBox(8.4, 0.18, 0.08, 7.4, 0.09, -13.28, studyBaseboardMaterial);   // South wall
+    addBox(0.08, 0.18, 3.2, 3.08, 0.09, -14.8, studyBaseboardMaterial);   // West South partition
+    addBox(0.08, 0.18, 3.2, 3.08, 0.09, -21.2, studyBaseboardMaterial);   // West North partition
+
+    // Study Crown Moulding
+    addBox(0.10, 0.14, 9.6, 11.51, 4.03, -18.0, studyCrownMaterial); // East
+    addBox(8.4, 0.14, 0.10, 7.4, 4.03, -22.71, studyCrownMaterial);  // North
+    addBox(8.4, 0.14, 0.10, 7.4, 4.03, -13.29, studyCrownMaterial);  // South
+    addBox(0.10, 0.14, 3.2, 3.09, 4.03, -14.8, studyCrownMaterial);   // West South
+    addBox(0.10, 0.14, 3.2, 3.09, 4.03, -21.2, studyCrownMaterial);   // West North
+
+    // ─────────────────────────────────────────────────────────────
+    // ARCHITECTURAL BOOKSHELF & INDIVIDUAL 3D BOOKS (North Wall, Non-Interactive)
+    // ─────────────────────────────────────────────────────────────
+    // Bookshelf materials with rich medium-to-dark brown finish contrasting wall (0x6e6659)
+    const bookcaseWoodMat = new THREE.MeshLambertMaterial({ color: 0x483220 }); // Main walnut casework
+    const bookcaseBackMat = new THREE.MeshLambertMaterial({ color: 0x382517 }); // Recessed dark shadow backing
+    const bookcaseTrimMat = new THREE.MeshLambertMaterial({ color: 0x5a3f28 }); // Highlighted front edge trims
+    const bookendMat = new THREE.MeshLambertMaterial({ color: 0x9c7a4b });      // Warm bronze architectural bookends
+
+    // Distinct restrained book spine materials
+    const bookRedMat = new THREE.MeshLambertMaterial({ color: 0x8f3429 });      // Muted crimson / leather red
+    const bookTealMat = new THREE.MeshLambertMaterial({ color: 0x2e5e66 });     // Muted deep teal
+    const bookNavyMat = new THREE.MeshLambertMaterial({ color: 0x253b5c });     // Deep oxford navy
+    const bookOchreMat = new THREE.MeshLambertMaterial({ color: 0xb58438 });    // Warm aged ochre
+    const bookCreamMat = new THREE.MeshLambertMaterial({ color: 0xd2c6a7 });    // Antique parchment cream
+    const bookGreenMat = new THREE.MeshLambertMaterial({ color: 0x335439 });    // Forest / sage green
+    const bookTerracottaMat = new THREE.MeshLambertMaterial({ color: 0x9e4e36 });// Warm terracotta
+    const bookCharcoalMat = new THREE.MeshLambertMaterial({ color: 0x30363d }); // Dark slate charcoal
+
+    // North Wall inner surface is at Z = -22.76. Bookshelf center X = 7.00.
+    // 1. Recessed Back Panel (creates realistic interior bay depth behind books)
+    addBox(3.92, 2.96, 0.04, 7.00, 1.55, -22.70, bookcaseBackMat);
+
+    // 2. Base Plinth (rests solid on floor Y = 0.0)
+    addBox(4.00, 0.16, 0.48, 7.00, 0.08, -22.48, bookcaseWoodMat);
+
+    // 3. Vertical Outer Uprights (Gables) & Center Divider
+    addBox(0.08, 3.08, 0.48, 5.04, 1.54, -22.48, bookcaseWoodMat); // West Upright (Left)
+    addBox(0.08, 3.08, 0.48, 8.96, 1.54, -22.48, bookcaseWoodMat); // East Upright (Right)
+    addBox(0.06, 2.92, 0.45, 7.00, 1.54, -22.49, bookcaseWoodMat); // Center Architectural Divider
+
+    // 4. Top Cornice & Crown Header
+    addBox(4.08, 0.14, 0.52, 7.00, 3.08, -22.47, bookcaseWoodMat);
+    addBox(4.14, 0.05, 0.55, 7.00, 3.16, -22.46, bookcaseTrimMat); // Crown lip
+
+    // 5. Horizontal Shelves & Visible Edge Facings
+    // Shelf surface heights:
+    // Shelf 1 (Bottom): Y = 0.16 (top Y = 0.185)
+    // Shelf 2:          Y = 0.88 (top Y = 0.905)
+    // Shelf 3:          Y = 1.60 (top Y = 1.625, eye level)
+    // Shelf 4:          Y = 2.32 (top Y = 2.345)
+    [0.16, 0.88, 1.60, 2.32].forEach((sy) => {
+      // Main shelf slab
+      addBox(3.92, 0.05, 0.43, 7.00, sy, -22.49, bookcaseWoodMat);
+      // Highlighted front trim rail for crisp ASCII edge detection
+      addBox(3.92, 0.06, 0.03, 7.00, sy, -22.26, bookcaseTrimMat);
+    });
+
+    // 6. Individual 3D Books & Horizontal Stacks
+    // Helper for adding a vertical book on a shelf
+    // Bookshelf faces +Z into the room. Spines face +Z.
+    const addBook = (x: number, yShelfTop: number, h: number, w: number, mat: THREE.Material) => {
+      // Depth of pages into shelf: 0.28m
+      const depth = 0.28;
+      addBox(w, h, depth, x, yShelfTop + h / 2, -22.46, mat);
+    };
+
+    // Helper for adding a horizontal book stack
+    const addBookStack = (x: number, yShelfTop: number, books: { h: number; w: number; d: number; mat: THREE.Material }[]) => {
+      let curY = yShelfTop;
+      books.forEach((b) => {
+        addBox(b.w, b.h, b.d, x, curY + b.h / 2, -22.46, b.mat);
+        curY += b.h;
+      });
+    };
+
+    // ── SHELF 1 (Bottom Shelf, yShelfTop = 0.185) ──
+    // Left Bay: Hefty folios and encyclopedia volumes
+    [
+      { w: 0.11, h: 0.50, m: bookNavyMat },
+      { w: 0.09, h: 0.47, m: bookNavyMat },
+      { w: 0.10, h: 0.52, m: bookRedMat },
+      { w: 0.08, h: 0.44, m: bookCharcoalMat },
+      { w: 0.12, h: 0.51, m: bookGreenMat },
+      { w: 0.09, h: 0.46, m: bookOchreMat },
+      { w: 0.10, h: 0.48, m: bookNavyMat },
+      { w: 0.08, h: 0.42, m: bookTerracottaMat },
+      { w: 0.11, h: 0.49, m: bookTealMat },
+      { w: 0.10, h: 0.45, m: bookRedMat },
+    ].reduce((curX, b) => {
+      addBook(curX + b.w / 2, 0.185, b.h, b.w, b.m);
+      return curX + b.w + 0.01;
+    }, 5.14);
+    // Stack of 3 large horizontal art atlases on right side of Left Bay
+    addBookStack(6.58, 0.185, [
+      { w: 0.36, h: 0.075, d: 0.32, mat: bookNavyMat },
+      { w: 0.34, h: 0.065, d: 0.30, mat: bookCreamMat },
+      { w: 0.32, h: 0.060, d: 0.28, mat: bookRedMat },
+    ]);
+
+    // Right Bay: Archival volumes and reference collection
+    addBookStack(7.28, 0.185, [
+      { w: 0.34, h: 0.070, d: 0.30, mat: bookCharcoalMat },
+      { w: 0.32, h: 0.065, d: 0.29, mat: bookOchreMat },
+      { w: 0.30, h: 0.060, d: 0.28, mat: bookGreenMat },
+    ]);
+    [
+      { w: 0.10, h: 0.48, m: bookOchreMat },
+      { w: 0.08, h: 0.43, m: bookCreamMat },
+      { w: 0.11, h: 0.51, m: bookRedMat },
+      { w: 0.09, h: 0.45, m: bookTealMat },
+      { w: 0.10, h: 0.47, m: bookNavyMat },
+      { w: 0.08, h: 0.40, m: bookGreenMat },
+      { w: 0.12, h: 0.52, m: bookTerracottaMat },
+      { w: 0.09, h: 0.44, m: bookCharcoalMat },
+      { w: 0.10, h: 0.48, m: bookNavyMat },
+      { w: 0.08, h: 0.42, m: bookCreamMat },
+    ].reduce((curX, b) => {
+      addBook(curX + b.w / 2, 0.185, b.h, b.w, b.m);
+      return curX + b.w + 0.01;
+    }, 7.70);
+
+    // ── SHELF 2 (Middle Shelf, yShelfTop = 0.905) ──
+    // Left Bay: Mixed monographs, histories and journals
+    [
+      { w: 0.08, h: 0.42, m: bookTealMat },
+      { w: 0.07, h: 0.36, m: bookOchreMat },
+      { w: 0.09, h: 0.44, m: bookCreamMat },
+      { w: 0.06, h: 0.32, m: bookRedMat },
+      { w: 0.08, h: 0.39, m: bookNavyMat },
+      { w: 0.07, h: 0.35, m: bookGreenMat },
+      { w: 0.09, h: 0.41, m: bookTerracottaMat },
+      { w: 0.06, h: 0.33, m: bookTealMat },
+      { w: 0.08, h: 0.38, m: bookCreamMat },
+      { w: 0.10, h: 0.45, m: bookNavyMat },
+      { w: 0.07, h: 0.34, m: bookOchreMat },
+      { w: 0.08, h: 0.40, m: bookRedMat },
+    ].reduce((curX, b) => {
+      addBook(curX + b.w / 2, 0.905, b.h, b.w, b.m);
+      return curX + b.w + 0.01;
+    }, 5.14);
+    addBookStack(6.60, 0.905, [
+      { w: 0.28, h: 0.055, d: 0.26, mat: bookCreamMat },
+      { w: 0.26, h: 0.050, d: 0.25, mat: bookNavyMat },
+      { w: 0.24, h: 0.045, d: 0.24, mat: bookTealMat },
+    ]);
+
+    // Right Bay: Classic design and typography literature
+    [
+      { w: 0.08, h: 0.38, m: bookCreamMat },
+      { w: 0.09, h: 0.44, m: bookNavyMat },
+      { w: 0.07, h: 0.34, m: bookOchreMat },
+      { w: 0.08, h: 0.41, m: bookRedMat },
+      { w: 0.06, h: 0.31, m: bookGreenMat },
+      { w: 0.09, h: 0.43, m: bookTealMat },
+      { w: 0.07, h: 0.36, m: bookTerracottaMat },
+      { w: 0.08, h: 0.39, m: bookNavyMat },
+      { w: 0.09, h: 0.42, m: bookCreamMat },
+      { w: 0.06, h: 0.30, m: bookCharcoalMat },
+      { w: 0.08, h: 0.37, m: bookOchreMat },
+      { w: 0.07, h: 0.35, m: bookRedMat },
+      { w: 0.09, h: 0.40, m: bookGreenMat },
+    ].reduce((curX, b) => {
+      addBook(curX + b.w / 2, 0.905, b.h, b.w, b.m);
+      return curX + b.w + 0.01;
+    }, 7.14);
+    // Bronze architectural bookend at right end of bay
+    addBox(0.06, 0.20, 0.22, 8.78, 0.905 + 0.10, -22.46, bookendMat);
+
+    // ── SHELF 3 (Eye-Level Shelf, yShelfTop = 1.625) ──
+    // Left Bay: Philosophy, architecture and engineering treatises
+    [
+      { w: 0.08, h: 0.40, m: bookOchreMat },
+      { w: 0.09, h: 0.45, m: bookNavyMat },
+      { w: 0.07, h: 0.35, m: bookCreamMat },
+      { w: 0.08, h: 0.38, m: bookTerracottaMat },
+      { w: 0.06, h: 0.30, m: bookGreenMat },
+      { w: 0.09, h: 0.43, m: bookTealMat },
+      { w: 0.08, h: 0.39, m: bookRedMat },
+      { w: 0.07, h: 0.34, m: bookCreamMat },
+      { w: 0.08, h: 0.37, m: bookCharcoalMat },
+      { w: 0.09, h: 0.42, m: bookNavyMat },
+      { w: 0.07, h: 0.33, m: bookOchreMat },
+    ].reduce((curX, b) => {
+      addBook(curX + b.w / 2, 1.625, b.h, b.w, b.m);
+      return curX + b.w + 0.01;
+    }, 5.14);
+    // Stack of 3 journals
+    addBookStack(6.46, 1.625, [
+      { w: 0.28, h: 0.055, d: 0.26, mat: bookTealMat },
+      { w: 0.26, h: 0.050, d: 0.25, mat: bookOchreMat },
+      { w: 0.24, h: 0.045, d: 0.24, mat: bookNavyMat },
+    ]);
+    // Leaning book against the stack
+    addBook(6.80, 1.625, 0.36, 0.08, bookRedMat);
+
+    // Right Bay: Contemporary computing and theory series
+    addBookStack(7.26, 1.625, [
+      { w: 0.30, h: 0.060, d: 0.26, mat: bookRedMat },
+      { w: 0.28, h: 0.050, d: 0.25, mat: bookCreamMat },
+    ]);
+    [
+      { w: 0.08, h: 0.38, m: bookNavyMat },
+      { w: 0.07, h: 0.34, m: bookTealMat },
+      { w: 0.09, h: 0.42, m: bookOchreMat },
+      { w: 0.08, h: 0.39, m: bookCreamMat },
+      { w: 0.06, h: 0.31, m: bookGreenMat },
+      { w: 0.09, h: 0.44, m: bookTerracottaMat },
+      { w: 0.07, h: 0.36, m: bookNavyMat },
+      { w: 0.08, h: 0.40, m: bookRedMat },
+      { w: 0.09, h: 0.43, m: bookTealMat },
+      { w: 0.07, h: 0.35, m: bookCreamMat },
+      { w: 0.08, h: 0.37, m: bookCharcoalMat },
+      { w: 0.08, h: 0.39, m: bookOchreMat },
+    ].reduce((curX, b) => {
+      addBook(curX + b.w / 2, 1.625, b.h, b.w, b.m);
+      return curX + b.w + 0.01;
+    }, 7.62);
+
+    // ── SHELF 4 (Upper Shelf, yShelfTop = 2.345) ──
+    // Archival binders and collections
+    [
+      { w: 0.10, h: 0.46, m: bookCreamMat },
+      { w: 0.09, h: 0.42, m: bookNavyMat },
+      { w: 0.11, h: 0.48, m: bookCharcoalMat },
+      { w: 0.08, h: 0.38, m: bookGreenMat },
+      { w: 0.10, h: 0.45, m: bookOchreMat },
+      { w: 0.09, h: 0.41, m: bookRedMat },
+      { w: 0.10, h: 0.47, m: bookTealMat },
+      { w: 0.08, h: 0.39, m: bookNavyMat },
+    ].reduce((curX, b) => {
+      addBook(curX + b.w / 2, 2.345, b.h, b.w, b.m);
+      return curX + b.w + 0.01;
+    }, 5.16);
+
+    [
+      { w: 0.09, h: 0.42, m: bookTealMat },
+      { w: 0.10, h: 0.45, m: bookRedMat },
+      { w: 0.08, h: 0.37, m: bookNavyMat },
+      { w: 0.11, h: 0.48, m: bookCreamMat },
+      { w: 0.09, h: 0.40, m: bookOchreMat },
+      { w: 0.10, h: 0.44, m: bookGreenMat },
+      { w: 0.08, h: 0.38, m: bookTerracottaMat },
+    ].reduce((curX, b) => {
+      addBook(curX + b.w / 2, 2.345, b.h, b.w, b.m);
+      return curX + b.w + 0.01;
+    }, 7.20);
+    addBookStack(8.36, 2.345, [
+      { w: 0.32, h: 0.060, d: 0.28, mat: bookNavyMat },
+      { w: 0.30, h: 0.055, d: 0.27, mat: bookCreamMat },
+    ]);
+
+    // ─────────────────────────────────────────────────────────────
+    // TALL ARCHITECTURAL FLOOR LAMP (North-East Rear Corner, against wall intersection)
+    // ─────────────────────────────────────────────────────────────
+    // Placed in the rear corner where North Wall (Z = -22.76) meets East Wall (X = 11.56)
+    // Center at X = 11.08, Z = -22.28 (clear of baseboards, fully inside room, clear of collision & furniture)
+    const floorLampBaseMat = new THREE.MeshLambertMaterial({ color: 0x221f1b });
+    const floorLampStemMat = new THREE.MeshLambertMaterial({ color: 0xd4b86a });
+    const floorLampShadeMat = new THREE.MeshLambertMaterial({
+      color: 0xfff4e6,
+      emissive: 0xffddaa,
+      emissiveIntensity: 0.8,
+    });
+    const floorLampGlowMat = new THREE.MeshLambertMaterial({
+      color: 0xffeedd,
+      emissive: 0xffddaa,
+      emissiveIntensity: 1.5,
+    });
+    // 1. Heavy circular/square plinth base resting firmly on floor (Y = 0.0 to 0.08)
+    addBox(0.60, 0.08, 0.60, 11.08, 0.04, -22.28, floorLampBaseMat);
+    addBox(0.40, 0.05, 0.40, 11.08, 0.10, -22.28, floorLampStemMat);
+    // 2. Tall slender vertical brass stem rising 2.20m high (thickness 0.10m for solid ASCII presence)
+    addBox(0.10, 2.16, 0.10, 11.08, 1.20, -22.28, floorLampStemMat);
+    // 3. Brass fitter collar & harp
+    addBox(0.20, 0.10, 0.20, 11.08, 2.32, -22.28, floorLampStemMat);
+    // 4. Large architectural linen shade (Y = 2.37 to 2.97m, height 0.60m, width 0.76m, towering clearly above desk & chair)
+    addBox(0.76, 0.60, 0.76, 11.08, 2.67, -22.28, floorLampShadeMat);
+    // Top and bottom brass shade trim rings
+    addBox(0.78, 0.04, 0.78, 11.08, 2.97, -22.28, floorLampStemMat);
+    addBox(0.78, 0.04, 0.78, 11.08, 2.37, -22.28, floorLampStemMat);
+    // 5. Inner luminous bulb glow radiating light
+    addBox(0.52, 0.46, 0.52, 11.08, 2.67, -22.28, floorLampGlowMat);
+
+    // 3. Environmental Furniture (Strictly Non-Interactive)
+    const deskWoodMaterial = new THREE.MeshLambertMaterial({ color: 0x3d2a1b });
+    const deskTopMaterial = new THREE.MeshLambertMaterial({ color: 0x4c3522 });
+    const deskHardwareMaterial = new THREE.MeshLambertMaterial({ color: 0xd4b86a });
+    const chairWoodMaterial = new THREE.MeshLambertMaterial({ color: 0x362316 });
+    const chairLeatherMaterial = new THREE.MeshLambertMaterial({ color: 0x261d19 });
+    const cpuCaseMaterial = new THREE.MeshLambertMaterial({ color: 0x484b52 });
+    const monitorBezelMaterial = new THREE.MeshLambertMaterial({ color: 0x3e4147 });
+    const keyboardMaterial = new THREE.MeshLambertMaterial({ color: 0x484b52 });
+    const keycapMaterial = new THREE.MeshLambertMaterial({ color: 0x2e3036 });
+    const mousePadMaterial = new THREE.MeshLambertMaterial({ color: 0x1e2024 });
+    const mouseMaterial = new THREE.MeshLambertMaterial({ color: 0x3e4147 });
+    const deskLampMaterial = new THREE.MeshLambertMaterial({ color: 0xd4b86a });
+    const deskLampShadeMaterial = new THREE.MeshLambertMaterial({ color: 0x20452d });
+
+    // Substantial Executive Walnut Desk (Center at X = 8.5, Z = -18.0)
+    addBox(1.05, 0.06, 2.45, 8.5, 0.76, -18.0, deskTopMaterial);
+    // Left drawer pedestal (South: Z = -17.2, X = 8.5)
+    addBox(0.92, 0.72, 0.58, 8.5, 0.36, -17.2, deskWoodMaterial);
+    [0.16, 0.38, 0.60].forEach((dy) => {
+      addBox(0.02, 0.18, 0.50, 8.03, dy, -17.2, deskTopMaterial);
+      addBox(0.03, 0.03, 0.14, 8.01, dy, -17.2, deskHardwareMaterial);
+    });
+    // Right drawer pedestal (North: Z = -18.8, X = 8.5)
+    addBox(0.92, 0.72, 0.58, 8.5, 0.36, -18.8, deskWoodMaterial);
+    [0.16, 0.38, 0.60].forEach((dy) => {
+      addBox(0.02, 0.18, 0.50, 8.03, dy, -18.8, deskTopMaterial);
+      addBox(0.03, 0.03, 0.14, 8.01, dy, -18.8, deskHardwareMaterial);
+    });
+    // Modesty panel
+    addBox(0.04, 0.55, 1.05, 8.85, 0.45, -18.0, deskWoodMaterial);
+
+    // Matching Executive Office Chair (Behind desk at X = 9.35, Z = -18.0, facing West)
+    addBox(0.55, 0.04, 0.55, 9.35, 0.06, -18.0, chairWoodMaterial);
+    addBox(0.08, 0.38, 0.08, 9.35, 0.25, -18.0, chairWoodMaterial);
+    addBox(0.54, 0.10, 0.54, 9.35, 0.48, -18.0, chairLeatherMaterial);
+    addBox(0.10, 0.68, 0.50, 9.58, 0.84, -18.0, chairLeatherMaterial);
+    addBox(0.38, 0.06, 0.08, 9.35, 0.64, -17.72, chairWoodMaterial);
+    addBox(0.38, 0.06, 0.08, 9.35, 0.64, -18.28, chairWoodMaterial);
+
+    // Desk Accessories (CPU Tower, Keyboard, Mouse, Banker's Lamp - All Non-Interactive)
+    addBox(0.45, 0.56, 0.22, 8.6, 1.08, -17.15, cpuCaseMaterial);
+    addBox(0.02, 0.06, 0.16, 8.36, 1.25, -17.15, keycapMaterial);
+    addBox(0.02, 0.04, 0.12, 8.36, 1.15, -17.15, keycapMaterial);
+    addBox(0.02, 0.02, 0.02, 8.36, 0.95, -17.10, lampGlowMaterial);
+    addBox(0.18, 0.025, 0.52, 8.28, 0.805, -18.0, keyboardMaterial);
+    addBox(0.14, 0.015, 0.48, 8.28, 0.822, -18.0, keycapMaterial);
+    addBox(0.24, 0.005, 0.28, 8.32, 0.795, -17.55, mousePadMaterial);
+    addBox(0.12, 0.035, 0.07, 8.32, 0.815, -17.55, mouseMaterial);
+    addBox(0.20, 0.03, 0.20, 8.65, 0.81, -18.85, deskLampMaterial);
+    addBox(0.04, 0.38, 0.04, 8.65, 1.00, -18.85, deskLampMaterial);
+    addBox(0.14, 0.10, 0.26, 8.55, 1.20, -18.85, deskLampShadeMaterial);
+    addBox(0.08, 0.03, 0.18, 8.55, 1.14, -18.85, lampGlowMaterial);
+
+    // 4. Interactive Desktop Computer Workstation (Screen in #0047BB)
+    const computerScreenMaterial = new THREE.MeshLambertMaterial({
+      color: 0x0047bb,
+      emissive: 0x003399,
+      emissiveIntensity: 0.85,
+    });
+    // Monitor Stand & Housing
+    addBox(0.24, 0.03, 0.28, 8.55, 0.805, -18.0, monitorBezelMaterial);
+    addBox(0.08, 0.22, 0.10, 8.55, 0.92, -18.0, monitorBezelMaterial);
+    addBox(0.24, 0.48, 0.66, 8.55, 1.24, -18.0, monitorBezelMaterial);
+    // Interactive Monitor Screen (Facing West towards player, finished in #0047BB)
+    addBox(0.02, 0.40, 0.58, 8.42, 1.24, -18.0, computerScreenMaterial);
+    // Screen Bezel Trim
+    addBox(0.04, 0.48, 0.04, 8.44, 1.24, -17.69, monitorBezelMaterial);
+    addBox(0.04, 0.48, 0.04, 8.44, 1.24, -18.31, monitorBezelMaterial);
+    addBox(0.04, 0.04, 0.66, 8.44, 1.46, -18.0, monitorBezelMaterial);
+    addBox(0.04, 0.04, 0.66, 8.44, 1.02, -18.0, monitorBezelMaterial);
+
+    // ─── E. THE ART ROOM (STUDIO & GALLERY WALL) ───
+    // Directly adjacent to Study at X: 2.8 to 11.8, Z: -13.0 to -3.0, Height: 4.2m
+    const studioFloorMaterial = new THREE.MeshLambertMaterial({ color: 0x4e3e30 });
+    const studioCeilingMaterial = new THREE.MeshLambertMaterial({ color: 0x2e2722 });
+    const studioBeamMaterial = new THREE.MeshLambertMaterial({ color: 0x3d3024 });
+    const studioWallMaterial = new THREE.MeshLambertMaterial({ color: 0x726a5c }); // Warm studio plaster
+    const studioBaseboardMaterial = new THREE.MeshLambertMaterial({ color: 0x28201a });
+    const studioCrownMaterial = new THREE.MeshLambertMaterial({ color: 0x342a22 });
+
+    // Studio Floor & Ceiling (matching hallway elevation and 4.2m ceiling height)
+    addBox(9.0, 0.22, 10.0, 7.3, -0.01, -8.0, studioFloorMaterial);
+    addBox(9.0, 0.20, 10.0, 7.3, 4.2, -8.0, studioCeilingMaterial);
+
+    // Studio Exposed Ceiling Beams (converging perspective across X)
+    [-4.5, -6.8, -9.2, -11.5].forEach((bz) => {
+      addBox(8.7, 0.28, 0.24, 7.4, 4.05, bz, studioBeamMaterial);
+    });
+
+    // Art Room Perimeter Walls
+    // North Partition Wall (shared with Study at Z = -13.0, inner studio face at Z = -12.88)
+    // South Outer Wall (at Z = -3.0)
+    addBox(8.76, 4.2, 0.48, 7.42, 2.1, -3.0, studioWallMaterial);
+
+    // West Partition Wall (inner face towards Hallway, split for doorway at Z = -7.5, width 2.6)
+    addBox(0.24, 4.2, 3.2, 2.92, 2.1, -4.6, studioWallMaterial);   // South segment (Z: -3.0 to -6.2)
+    addBox(0.24, 1.0, 2.6, 2.92, 3.7, -7.5, frameMaterial);        // Doorway lintel inner face (Z: -6.2 to -8.8)
+    addBox(0.24, 4.2, 4.2, 2.92, 2.1, -10.9, studioWallMaterial);  // North segment (Z: -8.8 to -13.0)
+
+    // East Outer Wall (at X = 11.8) WITH WALKWAY-FACING WINDOW (centered at Z = -8.0, 3.2m wide, 2.4m high)
+    const windowCasingMaterial = new THREE.MeshLambertMaterial({ color: 0x342a22 });
+    const windowMullionMaterial = new THREE.MeshLambertMaterial({ color: 0x241d17 });
+    const glassMaterial = new THREE.MeshLambertMaterial({
+      color: 0x90a8b8,
+      transparent: true,
+      opacity: 0.15,
+    });
+
+    addBox(0.48, 4.2, 3.4, 11.80, 2.1, -4.7, studioWallMaterial);   // South of window (Z: -3.0 to -6.4)
+    addBox(0.48, 4.2, 3.4, 11.80, 2.1, -11.3, studioWallMaterial);  // North of window (Z: -9.6 to -13.0)
+    addBox(0.48, 0.9, 3.2, 11.80, 0.45, -8.0, studioWallMaterial);  // Wall below window sill (Y: 0.0 to 0.9)
+    addBox(0.48, 0.9, 3.2, 11.80, 3.75, -8.0, studioWallMaterial);  // Wall above window lintel (Y: 3.3 to 4.2)
+
+    // Window Architectural Framework (Deep sill, casing, lintel, mullions)
+    addBox(0.60, 0.08, 3.35, 11.80, 0.91, -8.0, windowCasingMaterial);  // Window sill
+    addBox(0.60, 0.08, 3.35, 11.80, 3.29, -8.0, windowCasingMaterial);  // Window lintel casing
+    addBox(0.60, 2.40, 0.10, 11.80, 2.10, -6.4, windowCasingMaterial);  // South jamb casing
+    addBox(0.60, 2.40, 0.10, 11.80, 2.10, -9.6, windowCasingMaterial);  // North jamb casing
+    // Window mullions (crossbars creating multi-pane studio window)
+    addBox(0.48, 2.38, 0.06, 11.80, 2.10, -8.0, windowMullionMaterial); // Vertical mullion
+    addBox(0.48, 0.06, 3.18, 11.80, 2.10, -8.0, windowMullionMaterial); // Horizontal transom
+    // Clear glass pane allowing two-way sightline between exterior walkway and studio
+    addBox(0.04, 2.36, 3.16, 11.80, 2.10, -8.0, glassMaterial);
+
+    // Studio Interior Baseboards & Crown Moulding
+    addBox(8.4, 0.18, 0.08, 7.4, 0.09, -12.82, studioBaseboardMaterial); // North gallery wall baseboard
+    addBox(8.4, 0.18, 0.08, 7.4, 0.09, -3.26, studioBaseboardMaterial);  // South wall baseboard
+    addBox(0.08, 0.18, 3.1, 3.08, 0.09, -4.6, studioBaseboardMaterial);   // West South partition baseboard
+    addBox(0.08, 0.18, 4.1, 3.08, 0.09, -10.9, studioBaseboardMaterial);  // West North partition baseboard
+    addBox(0.08, 0.18, 3.3, 11.52, 0.09, -4.7, studioBaseboardMaterial);  // East South baseboard
+    addBox(0.08, 0.18, 3.3, 11.52, 0.09, -11.3, studioBaseboardMaterial); // East North baseboard
+
+    addBox(8.4, 0.14, 0.10, 7.4, 4.03, -12.83, studioCrownMaterial); // North
+    addBox(8.4, 0.14, 0.10, 7.4, 4.03, -3.27, studioCrownMaterial);  // South
+    addBox(0.10, 0.14, 3.1, 3.09, 4.03, -4.6, studioCrownMaterial);   // West South
+    addBox(0.10, 0.14, 4.1, 3.09, 4.03, -10.9, studioCrownMaterial);  // West North
+    addBox(0.10, 0.14, 9.6, 11.51, 4.03, -8.0, studioCrownMaterial);  // East
+
+    // Exterior Stone Walkway alongside East side of the house
+    const stoneWalkwayMaterial = new THREE.MeshLambertMaterial({ color: 0x5a544c });
+    const stoneCurbMaterial = new THREE.MeshLambertMaterial({ color: 0x3d3934 });
+    const stoneLanternMaterial = new THREE.MeshLambertMaterial({ color: 0x2f2b26 });
+    const lanternGlowMaterial = new THREE.MeshLambertMaterial({
+      color: 0xffe2b0,
+      emissive: 0xdd9944,
+      emissiveIntensity: 0.9,
+    });
+
+    // Paved stone walkway surface (X: 11.8 to 14.2, Z: -14.0 to 2.5)
+    addBox(2.4, 0.06, 16.5, 13.0, 0.02, -5.75, stoneWalkwayMaterial);
+    // Outer stone curb edging (X = 14.22)
+    addBox(0.12, 0.12, 16.5, 14.22, 0.05, -5.75, stoneCurbMaterial);
+    // Low stone garden lanterns along walkway
+    [-1.0, -5.5, -10.5].forEach((lz) => {
+      addBox(0.32, 0.65, 0.32, 13.6, 0.33, lz, stoneLanternMaterial);
+      addBox(0.24, 0.22, 0.24, 13.6, 0.72, lz, lanternGlowMaterial);
+      addBox(0.38, 0.08, 0.38, 13.6, 0.86, lz, stoneLanternMaterial);
+    });
+
+    // ─── GALLERY WALL OF 7 SIGNATURE BLUE FRAMES (#0047BB) ───
+    const blueFrameMaterial = new THREE.MeshLambertMaterial({
+      color: 0x0047bb,
+      emissive: 0x0033bb,
+      emissiveIntensity: 0.75,
+    });
+    const emptyCanvasMatte = new THREE.MeshLambertMaterial({
+      color: 0xf5f3ee,
+      emissive: 0xd8d4cb,
+      emissiveIntensity: 0.35,
+    });
+    // Dark velvet matte for filled frames to ensure 0 ASCII bleed through or behind images
+    const darkBackingMatte = new THREE.MeshLambertMaterial({
+      color: 0x010101,
+      emissive: 0x000000,
+    });
+    const frameInnerShadow = new THREE.MeshLambertMaterial({ color: 0x001438 });
+    const frameWireMaterial = new THREE.MeshLambertMaterial({ color: 0x888888 });
+
+    GALLERY_FRAMES.forEach((gf) => {
+      const [fx, fy, fz] = gf.position;
+      const fw = gf.width;
+      const fh = gf.height;
+      const fd = gf.depth || 0.10;
+      const border = 0.09; // Frame border width
+
+      // Top molding
+      addBox(fw, border, fd, fx, fy + fh / 2 - border / 2, fz, blueFrameMaterial);
+      // Bottom molding
+      addBox(fw, border, fd, fx, fy - fh / 2 + border / 2, fz, blueFrameMaterial);
+      // Left molding
+      addBox(border, fh - border * 2, fd, fx - fw / 2 + border / 2, fy, fz, blueFrameMaterial);
+      // Right molding
+      addBox(border, fh - border * 2, fd, fx + fw / 2 - border / 2, fy, fz, blueFrameMaterial);
+
+      // Inner shadow bezel
+      addBox(fw - border * 1.6, fh - border * 1.6, 0.04, fx, fy, fz - 0.01, frameInnerShadow);
+
+      // Mount Backing (archival white for empty slots, pitch-black matte for filled slots to avoid ASCII bleed)
+      addBox(
+        fw - border * 2,
+        fh - border * 2,
+        0.02,
+        fx,
+        fy,
+        fz - 0.02,
+        gf.imagePath ? darkBackingMatte : emptyCanvasMatte
+      );
+
+      // Top hanging bracket
+      addBox(0.04, 0.08, 0.02, fx, fy + fh / 2 + 0.04, fz - 0.02, frameWireMaterial);
+
+      // Dedicated 3D Artwork Canvas Mesh (Native WebGL textured plane converted to ASCII)
+      if (gf.imagePath) {
+        const texture = textureLoader.load(gf.imagePath);
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        texture.generateMipmaps = true;
+
+        const innerW = fw - border * 2;
+        const innerH = fh - border * 2;
+
+        const artGeo = new THREE.PlaneGeometry(innerW, innerH);
+        const artMat = new THREE.MeshBasicMaterial({
+          map: texture,
+          side: THREE.FrontSide,
+          depthWrite: true,
+        });
+
+        const artMesh = new THREE.Mesh(artGeo, artMat);
+        // Positioned at z = -12.76, resting flush inside the signature blue molding
+        artMesh.position.set(fx, fy, -12.76);
+        artMesh.userData = {
+          isGalleryArtwork: true,
+          frameId: gf.id,
+          destinationUrl: gf.destinationUrl,
+          title: gf.title,
+        };
+        houseGroup.add(artMesh);
+        galleryArtMeshes.push(artMesh);
+      }
+    });
+
+    // ─── STUDIO FURNITURE & LIVED-IN ELEMENTS (Strictly Non-Interactive) ───
+    const studioWoodMaterial = new THREE.MeshLambertMaterial({ color: 0x6c4e32 });
+    const studioLightWoodMaterial = new THREE.MeshLambertMaterial({ color: 0x9b7b56 });
+    const canvasMaterial = new THREE.MeshLambertMaterial({ color: 0xf5f0e6 });
+    const canvasEdgeMaterial = new THREE.MeshLambertMaterial({ color: 0x9e7e59 });
+    const paletteWoodMaterial = new THREE.MeshLambertMaterial({ color: 0xb59265 });
+    const corkMaterial = new THREE.MeshLambertMaterial({ color: 0xa48054 });
+    const paperWhiteMaterial = new THREE.MeshLambertMaterial({ color: 0xded8ce });
+    const paperSketchMaterial = new THREE.MeshLambertMaterial({ color: 0xc8c0b2 });
+    const brushJarMaterial = new THREE.MeshLambertMaterial({ color: 0x364a5c });
+    const metalFerruleMaterial = new THREE.MeshLambertMaterial({ color: 0xb0b0b0 });
+    const brushBristleMaterial = new THREE.MeshLambertMaterial({ color: 0x222222 });
+
+    // 1. Large Artist Easel with Primed Stretched Canvas & Mixing Palette (X = 9.2, Z = -9.8)
+    // Easel A-frame legs
+    addBox(0.06, 2.10, 0.06, 8.85, 1.05, -9.60, studioLightWoodMaterial);
+    addBox(0.06, 2.10, 0.06, 9.55, 1.05, -9.60, studioLightWoodMaterial);
+    addBox(0.06, 2.15, 0.06, 9.20, 1.05, -10.25, studioLightWoodMaterial); // Rear diagonal leg
+    // Center mast
+    addBox(0.08, 2.35, 0.06, 9.20, 1.20, -9.65, studioLightWoodMaterial);
+    // Lower crank shelf tray
+    addBox(0.95, 0.05, 0.22, 9.20, 1.05, -9.60, studioWoodMaterial);
+    // Top canvas clamp
+    addBox(0.24, 0.06, 0.12, 9.20, 2.05, -9.63, studioWoodMaterial);
+    // Primed blank canvas on easel (1.1m x 0.9m)
+    addBox(1.10, 0.90, 0.04, 9.20, 1.55, -9.56, canvasMaterial);
+    addBox(1.12, 0.92, 0.02, 9.20, 1.55, -9.58, canvasEdgeMaterial);
+    // Wooden palette on easel shelf
+    addBox(0.42, 0.015, 0.28, 8.95, 1.08, -9.55, paletteWoodMaterial);
+    // Paint dabs on palette
+    const paintDabs = [0xb82828, 0x1848a0, 0xd4a020, 0x207850, 0xffffff, 0xe06020];
+    paintDabs.forEach((pcol, i) => {
+      addBox(0.03, 0.01, 0.03, 8.85 + i * 0.04, 1.09, -9.55, new THREE.MeshLambertMaterial({ color: pcol }));
+    });
+
+    // 2. Heavy Joinery Artist Worktable (Center X = 6.8, Z = -6.2)
+    // Table Top (2.4m x 1.1m x 0.08m at Y = 0.78)
+    addBox(2.40, 0.08, 1.10, 6.80, 0.78, -6.20, studioWoodMaterial);
+    // Four heavy block legs
+    [5.80, 7.80].forEach((lx) => {
+      [-5.80, -6.60].forEach((lz) => {
+        addBox(0.12, 0.74, 0.12, lx, 0.37, lz, studioWoodMaterial);
+      });
+    });
+    // Table cross stretchers
+    addBox(2.00, 0.06, 0.08, 6.80, 0.22, -5.80, studioWoodMaterial);
+    addBox(2.00, 0.06, 0.08, 6.80, 0.22, -6.60, studioWoodMaterial);
+
+    // Studio Clutter & Art Supplies on Worktable
+    // Large open sketchbook with thick paper pages
+    addBox(0.48, 0.03, 0.36, 6.30, 0.83, -6.10, paperWhiteMaterial);
+    addBox(0.44, 0.01, 0.32, 6.30, 0.845, -6.10, paperSketchMaterial);
+    // Stack of closed hardcover sketchbooks
+    addBox(0.35, 0.06, 0.26, 7.20, 0.85, -6.35, new THREE.MeshLambertMaterial({ color: 0x26384a }));
+    addBox(0.32, 0.05, 0.24, 7.20, 0.90, -6.35, new THREE.MeshLambertMaterial({ color: 0x4a2e26 }));
+
+    // Mason jar holding paintbrushes
+    addBox(0.14, 0.18, 0.14, 7.70, 0.91, -6.00, brushJarMaterial);
+    // 5 Assorted paintbrushes sticking out
+    [-0.04, -0.02, 0.0, 0.02, 0.04].forEach((boff, bi) => {
+      const bh = 0.32 + (bi % 3) * 0.06;
+      addBox(0.015, bh, 0.015, 7.70 + boff, 0.95 + bh / 2, -6.00 + (bi % 2 === 0 ? 0.02 : -0.02), studioLightWoodMaterial);
+      addBox(0.018, 0.04, 0.018, 7.70 + boff, 0.95 + bh - 0.04, -6.00 + (bi % 2 === 0 ? 0.02 : -0.02), metalFerruleMaterial);
+      addBox(0.016, 0.05, 0.016, 7.70 + boff, 0.95 + bh, -6.00 + (bi % 2 === 0 ? 0.02 : -0.02), brushBristleMaterial);
+    });
+
+    // Palette knife can & charcoal sticks
+    addBox(0.11, 0.14, 0.11, 7.50, 0.89, -6.40, new THREE.MeshLambertMaterial({ color: 0x5a5a60 }));
+    addBox(0.02, 0.24, 0.01, 7.50, 1.02, -6.40, metalFerruleMaterial);
+    addBox(0.01, 0.20, 0.01, 7.52, 1.00, -6.38, new THREE.MeshLambertMaterial({ color: 0x111111 }));
+
+    // Assorted paint tubes scattered on table
+    const paintTubeColors = [0xb82828, 0x1848a0, 0xd4a020, 0x207850, 0x882060, 0xffffff];
+    paintTubeColors.forEach((tc, ti) => {
+      const tx = 6.75 + (ti % 3) * 0.12;
+      const tz = -5.85 - Math.floor(ti / 3) * 0.10;
+      addBox(0.08, 0.025, 0.04, tx, 0.835, tz, new THREE.MeshLambertMaterial({ color: 0x9e9ea4 }));
+      addBox(0.03, 0.028, 0.035, tx - 0.01, 0.837, tz, new THREE.MeshLambertMaterial({ color: tc }));
+    });
+
+    // 3. Large South Wall Cork Pinboard with Concept Sketches & Swatches
+    // Pinboard centered at X = 7.5, Y = 2.2, Z = -3.22 (3.8m wide x 1.4m high)
+    addBox(3.80, 1.40, 0.04, 7.50, 2.20, -3.22, corkMaterial);
+    // Pinboard oak frame
+    addBox(3.88, 0.06, 0.06, 7.50, 2.92, -3.22, studioWoodMaterial); // Top
+    addBox(3.88, 0.06, 0.06, 7.50, 1.48, -3.22, studioWoodMaterial); // Bottom
+    addBox(0.06, 1.40, 0.06, 5.60, 2.20, -3.22, studioWoodMaterial); // Left
+    addBox(0.06, 1.40, 0.06, 9.40, 2.20, -3.22, studioWoodMaterial); // Right
+
+    // Pinned notes, concept sketches and swatches on pinboard
+    const pinNotes = [
+      { x: 6.20, y: 2.45, w: 0.45, h: 0.55, c: 0xdedad2 },
+      { x: 6.85, y: 2.40, w: 0.55, h: 0.65, c: 0xe8e4dc },
+      { x: 7.60, y: 2.50, w: 0.40, h: 0.40, c: 0xd8d0c0 },
+      { x: 8.30, y: 2.40, w: 0.50, h: 0.60, c: 0xedeae2 },
+      { x: 8.95, y: 2.35, w: 0.42, h: 0.48, c: 0xded4c4 },
+      { x: 6.50, y: 1.85, w: 0.50, h: 0.35, c: 0xeee8d8 },
+      { x: 7.20, y: 1.80, w: 0.60, h: 0.42, c: 0xe0d8cc },
+      { x: 8.00, y: 1.82, w: 0.48, h: 0.38, c: 0xdcd6cb },
+      { x: 8.70, y: 1.80, w: 0.35, h: 0.35, c: 0xe8e0d0 },
+    ];
+    pinNotes.forEach((pn) => {
+      addBox(pn.w, pn.h, 0.01, pn.x, pn.y, -3.24, new THREE.MeshLambertMaterial({ color: pn.c }));
+      // Push pin
+      addBox(0.02, 0.02, 0.025, pn.x, pn.y + pn.h / 2 - 0.03, -3.25, new THREE.MeshLambertMaterial({ color: 0xcc2222 }));
+    });
+
     scene.add(houseGroup);
 
     // ─────────────────────────────────────────────────────────────
@@ -1707,6 +2511,8 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
     const markerMeshes: { mesh: THREE.Mesh; objId: string }[] = [];
 
     HOUSE_OBJECTS_3D.forEach((item) => {
+      // Gallery wall frames are rendered in signature blue (#0047BB); omit wireframe markers so frames are clean
+      if (item.id.startsWith("gallery-frame-")) return;
       const markerGeo = new THREE.OctahedronGeometry(0.16, 0);
       const markerMat = new THREE.MeshBasicMaterial({
         color: 0x769efd,
@@ -1783,26 +2589,6 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
         scene.add(lampLight);
     }
 
-    // Vintage street lamp: Back
-    {
-        const post = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.07, 0.07, 4, 8),
-            new THREE.MeshLambertMaterial({ color: 0x2c231b })
-        );
-        post.position.set(-2, 2, -20);
-        scene.add(post);
-
-        const lantern = new THREE.Mesh(
-            new THREE.SphereGeometry(0.25, 8, 8),
-            new THREE.MeshLambertMaterial({ color: 0x555555 })
-        );
-        lantern.position.set(-2, 4.2, -20);
-        scene.add(lantern);
-
-        const lampLight = new THREE.PointLight(0xffa500, 3.0, 12);
-        lampLight.position.set(-2, 4.5, -20);
-        scene.add(lampLight);
-    }
     // extMoonLight.position.set(6, 14, 15);
 // scene.add(extMoonLight);
 // scene.add(extMoonLight);
@@ -1925,6 +2711,86 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
     scene.add(doorwaySpillLight);
     scene.add(doorwaySpillLight.target);
 
+    // Study Room Overhead Downlight (Ambient Wash)
+    const studyOverheadLight = new THREE.PointLight(0xfff5ea, 5.8, 22);
+    studyOverheadLight.position.set(7.3, 3.8, -18.0);
+    scene.add(studyOverheadLight);
+
+    // Dedicated Bookshelf Wash Downlight (directly illuminates shelves & 3D book spines on North Wall)
+    const bookshelfWashLight = new THREE.PointLight(0xfff6ec, 6.2, 14.0);
+    bookshelfWashLight.position.set(7.00, 3.60, -21.40);
+    scene.add(bookshelfWashLight);
+
+    // Study North-East Rear Corner Floor Lamp Warm Glow (from tall floor lamp at X = 11.08, Z = -22.28)
+    const floorLampLight = new THREE.PointLight(0xffecd0, 8.5, 16.0);
+    floorLampLight.position.set(11.08, 2.67, -22.28);
+    scene.add(floorLampLight);
+
+    // Floor Lamp Base & Corner Floor Wash
+    const floorLampFloorLight = new THREE.PointLight(0xffecd0, 4.5, 6.0);
+    floorLampFloorLight.position.set(11.08, 0.40, -22.28);
+    scene.add(floorLampFloorLight);
+
+    // Study South Wall Downlight Wash
+    const studySouthLight = new THREE.PointLight(0xffefe0, 4.8, 18);
+    studySouthLight.position.set(7.3, 3.8, -14.8);
+    scene.add(studySouthLight);
+
+    // Study Desk Zone Overhead Fill Light
+    const studyDeskWashLight = new THREE.PointLight(0xfff5ea, 5.0, 16);
+    studyDeskWashLight.position.set(8.8, 3.4, -18.0);
+    scene.add(studyDeskWashLight);
+
+    // Study Desk Task Light (banker's brass lamp)
+    const deskTaskLight = new THREE.PointLight(0xffeedd, 3.6, 7.0);
+    deskTaskLight.position.set(8.55, 1.35, -18.85);
+    scene.add(deskTaskLight);
+
+    // Interactive Blue Monitor Glow Point Light (#0047BB)
+    const monitorGlowLight = new THREE.PointLight(0x0047bb, 3.2, 5.5);
+    monitorGlowLight.position.set(8.1, 1.25, -18.0);
+    scene.add(monitorGlowLight);
+
+    // Study Doorway Spill Spotlight into Hallway
+    const studyDoorwaySpillLight = new THREE.SpotLight(0xffecd4, 3.5, 14, Math.PI / 4, 0.4);
+    studyDoorwaySpillLight.position.set(5.5, 3.2, -18.0);
+    studyDoorwaySpillLight.target.position.set(1.0, 0.0, -18.0);
+    scene.add(studyDoorwaySpillLight);
+    scene.add(studyDoorwaySpillLight.target);
+
+    // ─── ART ROOM & GALLERY WALL LIGHTING ───
+    // Central Studio Overhead Warm Ambient Wash
+    const studioOverheadLight = new THREE.PointLight(0xfff2e0, 5.5, 22);
+    studioOverheadLight.position.set(7.3, 3.8, -8.0);
+    scene.add(studioOverheadLight);
+
+    // Dedicated Gallery Wall Directional Wash Light (illuminating the 7 signature blue frames on North wall)
+    const galleryWashLight = new THREE.PointLight(0xfff6ec, 7.5, 20);
+    galleryWashLight.position.set(7.0, 3.6, -11.5);
+    scene.add(galleryWashLight);
+
+    // Studio Worktable Overhead Task Glow
+    const worktableTaskLight = new THREE.PointLight(0xffeed6, 3.4, 10);
+    worktableTaskLight.position.set(6.8, 2.2, -6.2);
+    scene.add(worktableTaskLight);
+
+    // East Window Natural Daylight Wash (spilling into studio and visible from walkway)
+    const studioWindowDaylight = new THREE.PointLight(0xdde8f6, 4.2, 16);
+    studioWindowDaylight.position.set(11.2, 2.5, -8.0);
+    scene.add(studioWindowDaylight);
+
+    // East Exterior Walkway Garden Lantern Glow
+    const walkwayLanternLight = new THREE.PointLight(0xffe2b0, 2.6, 12);
+    walkwayLanternLight.position.set(13.4, 1.2, -7.5);
+    scene.add(walkwayLanternLight);
+
+    // Art Room Doorway Spill Spotlight into Hallway
+    const artDoorwaySpillLight = new THREE.SpotLight(0xffecd4, 3.2, 14, Math.PI / 4, 0.4);
+    artDoorwaySpillLight.position.set(5.5, 3.2, -7.5);
+    artDoorwaySpillLight.target.position.set(1.0, 0.0, -7.5);
+    scene.add(artDoorwaySpillLight);
+    scene.add(artDoorwaySpillLight.target);
+
     // Outdoor Daylight & Sunlight shining from the West Sky
     const outdoorDaylight = new THREE.DirectionalLight(0xdde9f7, 1.35);
     outdoorDaylight.position.set(-28, 12, -18);
@@ -2030,7 +2896,54 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
     animationFrameId = requestAnimationFrame(render);
 
     // ─────────────────────────────────────────────────────────────
-    // 9. RESIZE OBSERVER
+    // 9. DIRECT CLICK ON ASCII PORTRAITS (Raycasting Instagram Posts)
+    // ─────────────────────────────────────────────────────────────
+    const clickRaycaster = new THREE.Raycaster();
+    const clickMouse = new THREE.Vector2();
+
+    const handleCanvasArtworkClick = (e: MouseEvent) => {
+      // Don't intercept UI buttons, input fields, or dialogue modals
+      if (
+        e.target instanceof HTMLButtonElement ||
+        e.target instanceof HTMLInputElement ||
+        (e.target as HTMLElement)?.closest?.("button") ||
+        (e.target as HTMLElement)?.closest?.("[role='dialog']")
+      ) {
+        return;
+      }
+
+      const rect = asciiDom.getBoundingClientRect();
+      if (
+        e.clientX < rect.left ||
+        e.clientX > rect.right ||
+        e.clientY < rect.top ||
+        e.clientY > rect.bottom
+      ) {
+        return;
+      }
+
+      if (document.pointerLockElement === asciiDom) {
+        clickRaycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+      } else {
+        clickMouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        clickMouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        clickRaycaster.setFromCamera(clickMouse, camera);
+      }
+
+      const intersects = clickRaycaster.intersectObjects(galleryArtMeshes, false);
+      if (intersects.length > 0) {
+        const hit = intersects[0].object;
+        const dest = hit.userData?.destinationUrl;
+        if (dest) {
+          window.open(dest, "_blank", "noopener,noreferrer");
+        }
+      }
+    };
+
+    window.addEventListener("click", handleCanvasArtworkClick);
+
+    // ─────────────────────────────────────────────────────────────
+    // 10. RESIZE OBSERVER
     // ─────────────────────────────────────────────────────────────
     const handleResize = () => {
       if (!container) return;
@@ -2052,6 +2965,7 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
       cancelAnimationFrame(animationFrameId);
       resizeObserver.disconnect();
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener("click", handleCanvasArtworkClick);
       navigator.dispose();
 
       scene.clear();
@@ -2214,6 +3128,12 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
           onClose={() => handleCloseObjectModal("obj-hallway-map", "Architectural Map")}
         />
       )}
+
+      {/* Project Directory Modal (Study Interactive Computer) */}
+      <ProjectDirectoryModal
+        isOpen={isProjectDirectoryOpen}
+        onClose={handleCloseProjectDirectory}
+      />
     </div>
   );
 }

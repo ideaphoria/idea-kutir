@@ -74,25 +74,28 @@ export default function HouseMapModal({
               <span>[ CAD_SCHEMATIC.RAW ]</span>
               <span>1:1 SCALE</span>
             </div>
-            <pre className="font-mono text-[11px] leading-tight text-[#38ef7d] overflow-x-auto select-none py-1">{`   ┌──────────────────────────────────────────────┐
-   │ [02] THE LIVING ROOM                         │
-   │  · Product & Systems Projects                │
-   │  · High Ceiling (5.6m)                       │
-   │  · West Windows & Console                    │
-   └─────────────┬────────────────────────────────┘
-                 │ (Doorway at Z: -18)
-   ┌─────────────┴────────────────────────────────┐
-   │ [01] ENTRANCE HALL (AXIAL GALLERY)          │
-   │  · Profile Portrait (West Wall)              │
-   │  · House Blueprint Map (East Wall)           │
-   │  · Exposed Ceiling Perspective Beams         │
-   └─────────────┬────────────────────────────────┘
-                 │ (Main Facade Aperture at Z: 0)
-   ┌─────────────┴────────────────────────────────┐
-   │ [00] THE GROUNDS / FORECOURT APPROACH        │
-   │  · Stone Steps & Threshold                   │
-   │  · Exterior Facade & Night Air               │
-   └──────────────────────────────────────────────┘`}</pre>
+            <pre className="font-mono text-[10px] sm:text-[11px] leading-tight text-[#38ef7d] overflow-x-auto select-none py-1">{`   ┌───────────────────────────┐         ┌───────────────────────────┐
+   │ [02] THE LIVING ROOM      │         │ [03] THE STUDY / WORKSPACE│
+   │  · Product & Systems      │         │  · Terminal & Projects    │
+   │  · West Windows & Console │         │  · Bookshelf & Floor Lamp │
+   └─────────────┬─────────────┘         └─────────────┬─────────────┘
+                 │ (Doorway Z: -18)                    │ (Doorway Z: -18)
+   ┌─────────────┴─────────────────────────────────────┴─────────────┐
+   │ [01] ENTRANCE HALL (AXIAL GALLERY CORRIDOR)                     │
+   │  · Portrait (West Z: -8) · Blueprint Map (East Z: -12)          │
+   └─────────────┬─────────────────────────────────────┬─────────────┘
+                 │ (Doorway Z: -7.5)                   │
+                 │                       ┌─────────────┴─────────────┐
+                 │                       │ [04] THE ART ROOM         │
+                 │                       │  · 7 Blue Frames (#0047BB)│
+                 │                       │  · Easel, Table, Pinboard │
+                 │                       │  · Walkway East Window    │
+                 │                       └─────────────┬─────────────┘
+                 │ (Aperture Z: 0)                     │ (Sightline)
+   ┌─────────────┴─────────────────────────────────────┴─────────────┐
+   │ [00] THE GROUNDS APPROACH / EXTERIOR STONE WALKWAY              │
+   │  · Steps & Facade · East Stone Garden Path                      │
+   └─────────────────────────────────────────────────────────────────┘`}</pre>
           </div>
 
           {/* Active Sectors Navigation */}
@@ -100,11 +103,13 @@ export default function HouseMapModal({
             <div className="text-[11px] font-bold text-[#000080] mb-2 flex items-center gap-1">
               <span>🚪</span> Fast Navigation — Active Sectors:
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-5 gap-2">
               {[
-                { id: "exterior", num: "00", name: "The Grounds", note: "Facade & Steps" },
+                { id: "exterior", num: "00", name: "The Grounds", note: "Facade & Walkway" },
                 { id: "entrance_hall", num: "01", name: "Entrance Hall", note: "Gallery Corridor" },
                 { id: "living_room", num: "02", name: "Living Room", note: "Primary Chamber" },
+                { id: "study", num: "03", name: "The Study", note: "Office & Terminal" },
+                { id: "art_room", num: "04", name: "The Art Room", note: "Studio & Gallery" },
               ].map((room) => {
                 const isCurrent = currentRoomId === room.id;
                 return (
