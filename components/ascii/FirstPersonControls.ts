@@ -28,6 +28,8 @@ export class FirstPersonNavigator {
   private lastMouseX = 0;
   private lastMouseY = 0;
 
+  private joystickInput = { x: 0, y: 0 };
+
   private onTelemetryUpdate?: (telemetry: ControlTelemetry) => void;
   private onInteractPress?: () => void;
 
@@ -313,13 +315,64 @@ export class FirstPersonNavigator {
     }
   }
 
+  /**
+   * Sets continuous analog movement vector from virtual joystick.
+   * x: [-1, 1] strafe left/right
+   * y: [-1, 1] forward (positive) / backward (negative)
+   */
+  public setJoystickInput(x: number, y: number) {
+    if (!this.enabled) {
+      this.joystickInput.x = 0;
+      this.joystickInput.y = 0;
+      return;
+    }
+    this.joystickInput.x = Math.max(-1, Math.min(1, x));
+    this.joystickInput.y = Math.max(-1, Math.min(1, y));
+  }
+
+  /**
+   * Applies touch-drag rotational delta from mobile touch look zone.
+   * deltaX: horizontal swipe in pixels
+   * deltaY: vertical swipe in pixels
+   */
+  public handleTouchLook(deltaX: number, deltaY: number) {
+    if (!this.enabled) return;
+    const touchSensitivity = 0.0032;
+    this.euler.setFromQuaternion(this.camera.quaternion);
+    this.euler.y -= deltaX * touchSensitivity;
+    this.euler.x -= deltaY * touchSensitivity;
+
+    // Clamp vertical pitch (prevent flipping upside down)
+    const maxPitch = Math.PI / 2 - 0.08;
+    this.euler.x = Math.max(-maxPitch, Math.min(maxPitch, this.euler.x));
+
+    this.camera.quaternion.setFromEuler(this.euler);
+  }
+
+  /**
+   * Fully halts all movement inputs, clears joystick vector, and dampens velocity to 0.
+   */
+  public resetMovement() {
+    this.moveForward = false;
+    this.moveBackward = false;
+    this.moveLeft = false;
+    this.moveRight = false;
+    this.joystickInput.x = 0;
+    this.joystickInput.y = 0;
+    this.velocity.set(0, 0, 0);
+  }
+
+  /**
+   * Triggers interaction handler for mobile interaction button tap.
+   */
+  public triggerInteract() {
+    if (!this.enabled) return;
+    this.onInteractPress?.();
+  }
+
   public update(delta: number) {
     if (!this.enabled) {
-      this.moveForward = false;
-      this.moveBackward = false;
-      this.moveLeft = false;
-      this.moveRight = false;
-      this.velocity.set(0, 0, 0);
+      this.resetMovement();
     }
 
     // Damping / friction
@@ -327,16 +380,23 @@ export class FirstPersonNavigator {
     this.velocity.x *= damping;
     this.velocity.z *= damping;
 
-    this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
-    this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
-    this.direction.normalize();
+    // Combine keyboard and analog joystick inputs
+    const keyZ = Number(this.moveForward) - Number(this.moveBackward);
+    const keyX = Number(this.moveRight) - Number(this.moveLeft);
 
-    const walkSpeed = 38.0; // units / sec^2 acceleration
-    if (this.moveForward || this.moveBackward) {
-      this.velocity.z -= this.direction.z * walkSpeed * delta;
-    }
-    if (this.moveLeft || this.moveRight) {
-      this.velocity.x += this.direction.x * walkSpeed * delta;
+    const totalX = keyX + this.joystickInput.x;
+    const totalZ = keyZ + this.joystickInput.y;
+
+    const inputMagnitude = Math.hypot(totalX, totalZ);
+
+    if (inputMagnitude > 0.01) {
+      const normX = totalX / inputMagnitude;
+      const normZ = totalZ / inputMagnitude;
+      const clampedMag = Math.min(1.0, inputMagnitude);
+
+      const walkSpeed = 38.0; // units / sec^2 acceleration
+      this.velocity.x += normX * walkSpeed * delta * clampedMag;
+      this.velocity.z -= normZ * walkSpeed * delta * clampedMag;
     }
 
     // Camera forward and right vectors projected onto XZ plane

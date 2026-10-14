@@ -29,6 +29,8 @@ import { GALLERY_FRAMES, getGalleryFrame } from "@/data/gallery";
 import InventoryModal from "./InventoryModal";
 import NavigationHUDModal from "./NavigationHUDModal";
 import ProjectDirectoryModal from "./ProjectDirectoryModal";
+import OrientationPrompt from "./OrientationPrompt";
+import TouchControls from "./TouchControls";
 // import { skyShaderMaterial } from "./skyShader"; // sky shader removed
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 const houseGroup = new THREE.Group();
@@ -577,15 +579,17 @@ export default function AsciiHouse() {
     }
   }, [isFullScreenModalOpen, introStage]);
 
-  // Full-screen modals and opening introduction disable navigation and exit pointer lock
+  // Full-screen modals, opening introduction, and dialogues disable navigation and exit pointer lock
   useEffect(() => {
     if (navigatorRef.current) {
-      navigatorRef.current.enabled = !isFullScreenModalOpen && introStage === "playing";
-      if (isFullScreenModalOpen || introStage !== "playing") {
+      const isBlocked = isFullScreenModalOpen || introStage !== "playing" || !!hostDialogueConfig;
+      navigatorRef.current.enabled = !isBlocked;
+      if (isBlocked) {
         navigatorRef.current.exitLock();
+        navigatorRef.current.resetMovement();
       }
     }
-  }, [isFullScreenModalOpen, introStage]);
+  }, [isFullScreenModalOpen, introStage, hostDialogueConfig]);
 
   // Context-sensitive input lock: only exit lock if an interactive name prompt or refusal response requires cursor clicking
   useEffect(() => {
@@ -2992,12 +2996,24 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
   }
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-[#050504] select-none">
+    <div className="relative w-full h-screen overflow-hidden bg-[#050504] select-none touch-none">
+      {/* Landscape Orientation Welcome Prompt for Mobile Portrait Visitors */}
+      <OrientationPrompt />
+
       {/* 3D ASCII Viewport Canvas Element */}
       <div
         ref={containerRef}
         onClick={handleRequestPointerLock}
-        className="w-full h-full cursor-crosshair"
+        className="w-full h-full cursor-crosshair touch-none"
+        style={{ touchAction: "none" }}
+      />
+
+      {/* Mobile Touch Navigation (Virtual Joystick & Touch Look) */}
+      <TouchControls
+        navigator={navigatorRef.current}
+        hoveredObject={introStage !== "playing" || isAnyModalOpen ? null : hoveredObject}
+        onInteract={handleInteract}
+        disabled={isAnyModalOpen}
       />
 
       {/* Minimal Architectural HUD */}

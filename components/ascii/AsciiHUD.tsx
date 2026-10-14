@@ -34,23 +34,28 @@ export default function AsciiHUD({
   toastMessage = null,
 }: AsciiHUDProps) {
   const currentRoom = HOUSE_ROOMS_3D[telemetry.currentRoomId] || HOUSE_ROOMS_3D.exterior;
-  const [isLegendMinimized, setIsLegendMinimized] = useState(false);
+  const [isLegendMinimized, setIsLegendMinimized] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.innerWidth <= 768;
+    }
+    return false;
+  });
 
   const floorLabel = currentRoom.level === "exterior" ? "Outside" : "Ground Floor";
 
   return (
-    <div className="absolute inset-0 pointer-events-none select-none font-mono text-xs flex flex-col justify-between p-4 sm:p-6 text-[#d8d3c7]">
+    <div className="absolute inset-0 pointer-events-none select-none font-mono text-xs flex flex-col justify-between p-2 sm:p-4 md:p-6 text-[#d8d3c7]">
       {/* ─────────────────────────────────────────────────────────────
           TOP BAR: RETRO WINDOWS 95 TOOLBAR & CONTROLS
           ───────────────────────────────────────────────────────────── */}
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pointer-events-auto font-sans">
+      <header className="flex flex-row items-center justify-between gap-2 pointer-events-auto font-sans flex-wrap sm:flex-nowrap">
         {/* Navigation & Location Toolbar */}
-        <div className="flex items-center bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black p-1 shadow-md gap-1.5 text-black">
-          <div className="px-2 py-0.5 bg-gradient-to-r from-[#000080] to-[#1084d0] text-white text-[11px] font-bold flex items-center gap-1 select-none">
+        <div className="flex items-center bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black p-0.5 sm:p-1 shadow-md gap-1 sm:gap-1.5 text-black">
+          <div className="px-1.5 sm:px-2 py-0.5 bg-gradient-to-r from-[#000080] to-[#1084d0] text-white text-[10px] sm:text-[11px] font-bold flex items-center gap-1 select-none">
             <span>🏛</span>
             <span>Idea Kutir</span>
           </div>
-          <div className="border border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white px-2 py-0.5 text-xs text-black flex items-center gap-1.5 select-text">
+          <div className="border border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white px-1.5 sm:px-2 py-0.5 text-[11px] sm:text-xs text-black flex items-center gap-1 sm:gap-1.5 select-text">
             <span className="font-bold">{floorLabel}</span>
             <span className="text-[#808080]">|</span>
             <span className="font-semibold text-[#000080]">{currentRoom.name}</span>
@@ -192,8 +197,8 @@ export default function AsciiHUD({
       {/* ─────────────────────────────────────────────────────────────
           BOTTOM BAR: CONTROLS LEGEND & TELEMETRY
           ───────────────────────────────────────────────────────────── */}
-      <footer className="w-full flex flex-col sm:flex-row items-end sm:items-center justify-between gap-3 pointer-events-auto font-sans">
-        {/* Controls Legend (Retro Utility Window) */}
+      <footer className="w-full hidden lg:flex flex-col sm:flex-row items-end sm:items-center justify-between gap-3 pointer-events-auto font-sans">
+        {/* Controls Legend (Retro Utility Window) - Shown on desktop */}
         <div className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black p-1 shadow-[2px_2px_0px_rgba(0,0,0,0.7)] w-64 pointer-events-auto text-[11px] text-black">
           <div className="h-5 px-1 bg-gradient-to-r from-[#000080] to-[#1084d0] text-white font-bold flex items-center justify-between select-none">
             <span className="text-[10px] tracking-wide">CONTROLS.INI</span>

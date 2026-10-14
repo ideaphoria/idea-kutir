@@ -57,10 +57,10 @@ export const WIN95 = {
     titlebar:
       "h-6 px-1.5 flex items-center justify-between select-none bg-gradient-to-r from-[#000080] to-[#1084d0] text-white font-bold text-xs font-sans",
     closeBtn:
-      "w-4 h-4 shrink-0 flex items-center justify-center text-black font-bold text-[10px] leading-none cursor-pointer bg-[#c0c0c0] border border-t-white border-l-white border-b-black border-r-black active:border-t-black active:border-l-black active:border-b-white active:border-r-white",
-    btn: "bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black active:border-t-black active:border-l-black active:border-b-white active:border-r-white px-3 py-1 text-xs text-black font-sans font-bold shadow-sm text-center cursor-pointer select-none disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#d4d4d4]",
+      "w-6 h-6 sm:w-4 sm:h-4 shrink-0 flex items-center justify-center text-black font-bold text-xs sm:text-[10px] leading-none cursor-pointer bg-[#c0c0c0] border border-t-white border-l-white border-b-black border-r-black active:border-t-black active:border-l-black active:border-b-white active:border-r-white",
+    btn: "bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black active:border-t-black active:border-l-black active:border-b-white active:border-r-white px-3 py-2 sm:py-1 min-h-[44px] sm:min-h-[28px] inline-flex items-center justify-center text-xs text-black font-sans font-bold shadow-sm text-center cursor-pointer select-none disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#d4d4d4]",
     btnActive:
-      "bg-[#dcdcdc] border-2 border-t-black border-l-black border-b-white border-r-white px-3 py-1 text-xs text-black font-sans font-bold shadow-inner text-center cursor-pointer select-none",
+      "bg-[#dcdcdc] border-2 border-t-black border-l-black border-b-white border-r-white px-3 py-2 sm:py-1 min-h-[44px] sm:min-h-[28px] inline-flex items-center justify-center text-xs text-black font-sans font-bold shadow-inner text-center cursor-pointer select-none",
     recessed:
       "bg-white text-black border-2 border-t-[#808080] border-l-[#808080] border-b-white border-r-white font-sans",
     statusPane:

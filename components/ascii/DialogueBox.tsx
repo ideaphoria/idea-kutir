@@ -260,7 +260,7 @@ export default function DialogueBox({
             handleAdvance();
           }
         }}
-        className={`fixed z-50 ${positionClass} w-[min(380px,92vw)] select-none font-sans pointer-events-auto cursor-pointer`}
+        className={`fixed z-50 ${positionClass} max-h-[92vh] overflow-y-auto w-[min(380px,92vw)] select-none font-sans pointer-events-auto cursor-pointer`}
         style={{
           backgroundColor: "#c0c0c0",
           boxShadow: "2px 2px 0px rgba(0,0,0,0.7)",
@@ -271,13 +271,13 @@ export default function DialogueBox({
       >
       {/* Classic Windows 95/98 Navy Title Bar */}
       <div
-        className="h-6 px-1.5 flex items-center justify-between select-none"
+        className="h-7 sm:h-6 px-1.5 flex items-center justify-between select-none"
         style={{
           background: "linear-gradient(90deg, #000080 0%, #1084d0 100%)",
         }}
       >
         <div className="flex items-center gap-1.5 min-w-0 pr-1">
-          <span className="text-white font-bold text-[11px] sm:text-xs truncate tracking-wide font-sans">
+          <span className="text-white font-bold text-xs truncate tracking-wide font-sans">
             {windowTitle}
           </span>
         </div>
@@ -293,7 +293,7 @@ export default function DialogueBox({
               }
             }}
             title="Close"
-            className="w-4 h-4 shrink-0 flex items-center justify-center text-black font-bold text-[10px] leading-none cursor-pointer"
+            className="w-5 h-5 sm:w-4 sm:h-4 shrink-0 flex items-center justify-center text-black font-bold text-xs sm:text-[10px] leading-none cursor-pointer"
             style={{
               backgroundColor: "#c0c0c0",
               border: "1px solid",
@@ -378,7 +378,7 @@ export default function DialogueBox({
                     onNameSubmit?.(nameInputValue.trim());
                   }
                 }}
-                className="px-4 py-1 text-[11px] font-sans font-bold text-black min-w-[65px] text-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 sm:py-1 text-xs sm:text-[11px] min-h-[44px] sm:min-h-[28px] font-sans font-bold text-black min-w-[70px] sm:min-w-[65px] text-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 style={{
                   backgroundColor: "#c0c0c0",
                   border: "2px solid",
@@ -393,7 +393,7 @@ export default function DialogueBox({
                   e.stopPropagation();
                   onNameRefuse?.();
                 }}
-                className="px-4 py-1 text-[11px] font-sans font-bold text-black min-w-[65px] text-center cursor-pointer"
+                className="px-4 py-2 sm:py-1 text-xs sm:text-[11px] min-h-[44px] sm:min-h-[28px] font-sans font-bold text-black min-w-[70px] sm:min-w-[65px] text-center cursor-pointer flex items-center justify-center"
                 style={{
                   backgroundColor: "#c0c0c0",
                   border: "2px solid",
@@ -411,7 +411,7 @@ export default function DialogueBox({
                   e.stopPropagation();
                   handleButtonClick();
                 }}
-                className="px-4 py-1 text-[11px] font-sans font-bold text-black min-w-[65px] text-center cursor-pointer"
+                className="px-4 py-2 sm:py-1 text-xs sm:text-[11px] min-h-[44px] sm:min-h-[28px] font-sans font-bold text-black min-w-[70px] sm:min-w-[65px] text-center cursor-pointer flex items-center justify-center"
                 style={{
                   backgroundColor: "#c0c0c0",
                   border: "2px solid",
@@ -427,7 +427,7 @@ export default function DialogueBox({
                     e.stopPropagation();
                     onComplete();
                   }}
-                  className="px-4 py-1 text-[11px] font-sans font-bold text-black min-w-[65px] text-center cursor-pointer"
+                  className="px-4 py-2 sm:py-1 text-xs sm:text-[11px] min-h-[44px] sm:min-h-[28px] font-sans font-bold text-black min-w-[70px] sm:min-w-[65px] text-center cursor-pointer flex items-center justify-center"
                   style={{
                     backgroundColor: "#c0c0c0",
                     border: "2px solid",
