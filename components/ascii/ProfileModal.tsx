@@ -30,7 +30,7 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Title Bar */}
-        <header className="h-7 sm:h-6 px-1.5 flex items-center justify-between select-none bg-gradient-to-r from-[#000080] to-[#1084d0] text-white">
+        <header className="h-7 sm:h-6 px-1.5 flex items-center justify-between select-none bg-gradient-to-r from-[#13265C] via-[#436ECC] to-[#769EFD] text-white">
           <div className="flex items-center gap-1.5 text-xs font-bold truncate">
             <span>👤</span>
             <span>Resident Profile — Ashani (Idea Kutir)</span>
@@ -64,7 +64,7 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
         <div className="p-3 sm:p-4 overflow-y-auto flex-1 bg-[#c0c0c0] flex flex-col sm:flex-row gap-4 font-sans">
           {/* Left Column: Framed Archival Portrait */}
           <div className="shrink-0 w-full sm:w-48 border-2 border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white p-2 flex flex-col items-center">
-            <div className="w-full text-[10px] font-bold text-[#000080] uppercase tracking-wider mb-1.5 flex items-center justify-between">
+            <div className="w-full text-[10px] font-bold text-[#13265C] uppercase tracking-wider mb-1.5 flex items-center justify-between">
               <span>[ FIG. 01 ]</span>
               <span>RESIDENT SPECIMEN</span>
             </div>
@@ -98,7 +98,7 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
           <div className="flex-1 min-w-0 flex flex-col gap-3">
             {/* Brief Introduction */}
             <div className="border-2 border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white p-3">
-              <div className="text-[11px] font-bold text-[#000080] mb-1 flex items-center gap-1">
+              <div className="text-[11px] font-bold text-[#13265C] mb-1 flex items-center gap-1">
                 <span>📋</span> Brief Introduction
               </div>
               <p className="text-xs text-black leading-relaxed select-text">
@@ -108,7 +108,7 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
 
             {/* Overview of Design Practice */}
             <div className="border-2 border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white p-3">
-              <div className="text-[11px] font-bold text-[#000080] mb-1 flex items-center gap-1">
+              <div className="text-[11px] font-bold text-[#13265C] mb-1 flex items-center gap-1">
                 <span>🔍</span> Practice Overview
               </div>
               <p className="text-xs text-black leading-relaxed select-text">
@@ -118,7 +118,7 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
 
             {/* Areas of Practice */}
             <div className="border-2 border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white p-3">
-              <div className="text-[11px] font-bold text-[#000080] mb-1.5 flex items-center gap-1">
+              <div className="text-[11px] font-bold text-[#13265C] mb-1.5 flex items-center gap-1">
                 <span>🛠️</span> Areas of Practice
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
@@ -132,7 +132,7 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
                     key={idx}
                     className="bg-[#f0f0f0] border border-t-[#808080] border-l-[#808080] border-b-white border-r-white p-1.5 text-black flex items-center gap-1.5"
                   >
-                    <span className="text-[#000080] font-bold">&bull;</span>
+                    <span className="text-[#224294] font-bold">&bull;</span>
                     <span className="text-[11px]">{area}</span>
                   </div>
                 ))}
@@ -141,10 +141,10 @@ export default function ProfileModal({ onClose }: ProfileModalProps) {
 
             {/* Short Practice Statement */}
             <div className="border-2 border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white p-3">
-              <div className="text-[11px] font-bold text-[#000080] mb-1 flex items-center gap-1">
+              <div className="text-[11px] font-bold text-[#13265C] mb-1 flex items-center gap-1">
                 <span>💬</span> Practice Statement
               </div>
-              <blockquote className="border-l-2 border-[#000080] pl-2.5 text-xs italic text-[#333] leading-relaxed">
+              <blockquote className="border-l-2 border-[#769EFD] pl-2.5 text-xs italic text-[#333] leading-relaxed">
                 &ldquo;[ Placeholder Practice Statement: A concise philosophical statement on space, materials, interface friction, and digital crafts. ]&rdquo;
               </blockquote>
             </div>

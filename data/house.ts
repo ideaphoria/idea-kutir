@@ -17,6 +17,7 @@ export interface Project {
     caption: string;
     aspectRatio: string;
   };
+  externalUrl?: string;
 }
 
 export interface CollectibleObject {
@@ -211,6 +212,33 @@ export const PROJECTS: Record<string, Project> = {
       label: "Cetacean Communication Station",
       caption: "Speculative Acoustic Dossier · Hydrophone Rig · Projection Still",
       aspectRatio: "aspect-[16/10]",
+    },
+  },
+  "monster-on-the-hill": {
+    id: "monster-on-the-hill",
+    title: "Monster on the Hill",
+    subtitle: "Visual Arts & Illustration",
+    category: "Visual Arts & Illustration",
+    roomName: "The Art Room",
+    roomId: "art_room",
+    summary:
+      "A featured visual project displayed on the studio easel. Explore the complete artwork, visual development, and project presentation on Behance.",
+    overview:
+      "A featured visual project displayed on the studio easel in The Art Room. Explore the complete artwork, visual development, and project presentation on Behance.",
+    disciplines: ["Visual Arts", "Illustration", "Digital Art"],
+    externalUrl: "https://www.behance.net/gallery/257099701/Monster-on-the-Hill",
+    processPoints: [
+      {
+        title: "Behance Showcase",
+        description:
+          "Full project portfolio, high-resolution artwork plates, and creative presentation hosted on Behance.",
+      },
+    ],
+    outcomesPlaceholder: "Featured illustration project on Behance.",
+    thumbnailPlaceholder: {
+      label: "Monster on the Hill",
+      caption: "Featured Studio Easel Artwork · Behance Portfolio",
+      aspectRatio: "aspect-[4/3]",
     },
   },
 };

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { BLUE_PALETTE } from "./retroWin95";
 
 export interface DialogueLine {
   speaker: string;
@@ -274,7 +275,7 @@ export default function DialogueBox({
       <div
         className="h-7 sm:h-6 px-1.5 flex items-center justify-between select-none"
         style={{
-          background: "linear-gradient(90deg, #000080 0%, #1084d0 100%)",
+          background: BLUE_PALETTE.titlebarGradient,
         }}
       >
         <div className="flex items-center gap-1.5 min-w-0 pr-1">

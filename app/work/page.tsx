@@ -45,14 +45,14 @@ export default function WorkPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#008080] text-[#111111] font-sans p-2 sm:p-4 md:p-6 flex flex-col justify-start selection:bg-[#000080] selection:text-white">
+    <div className="min-h-screen bg-[#008080] text-[#111111] font-sans p-2 sm:p-4 md:p-6 flex flex-col justify-start selection:bg-[#769EFD] selection:text-[#13265C]">
       {/* ─────────────────────────────────────────────────────────────
           MASTER WORKSPACE WINDOW (Classic Gray Chassis & Inset Panels)
           ───────────────────────────────────────────────────────────── */}
       <main className="w-full max-w-7xl mx-auto bg-[#c0c0c0] border-2 border-t-[#ffffff] border-l-[#ffffff] border-b-[#404040] border-r-[#404040] shadow-2xl flex flex-col">
         {/* 1. Title Bar */}
         <header
-          className="h-8 bg-[#000080] text-white px-2.5 flex items-center justify-between font-bold text-xs select-none shadow-inner"
+          className="h-8 bg-gradient-to-r from-[#13265C] via-[#436ECC] to-[#769EFD] text-white px-2.5 flex items-center justify-between font-bold text-xs select-none shadow-inner"
           style={{ letterSpacing: "0.2px" }}
         >
           <div className="flex items-center gap-2 min-w-0">
@@ -173,7 +173,7 @@ export default function WorkPage() {
         >
           {/* User Profile Info Card (Matching Reference Image User Widget) */}
           <div className="flex items-center gap-2.5 bg-[#c0c0c0] border-2 border-t-[#ffffff] border-l-[#ffffff] border-b-[#808080] border-r-[#808080] p-1.5 px-2.5 shadow-xs shrink-0">
-            <div className="w-8 h-8 rounded-full bg-[#000080] text-white flex items-center justify-center font-bold text-sm shadow-inner">
+            <div className="w-8 h-8 rounded-full bg-[#13265C] text-white flex items-center justify-center font-bold text-sm shadow-inner">
               AG
             </div>
             <div>
@@ -247,7 +247,7 @@ export default function WorkPage() {
                 }}
                 className={`w-full text-left px-2 py-1 flex items-center gap-2 rounded-none font-medium cursor-pointer ${
                   activeTab === "projects" && activeCategory === "all"
-                    ? "bg-[#000080] text-white font-bold"
+                    ? "bg-[#13265C] text-white font-bold"
                     : "hover:bg-[#d0d0d0] text-black"
                 }`}
               >
@@ -262,7 +262,7 @@ export default function WorkPage() {
                 }}
                 className={`w-full text-left px-2 py-1 flex items-center gap-2 rounded-none font-medium cursor-pointer ${
                   activeCategory === "product"
-                    ? "bg-[#000080] text-white font-bold"
+                    ? "bg-[#13265C] text-white font-bold"
                     : "hover:bg-[#d0d0d0] text-black"
                 }`}
               >
@@ -287,7 +287,7 @@ export default function WorkPage() {
                       onClick={() => setSelectedProjectId(p.id)}
                       className={`w-full text-left px-2 py-1 flex items-center gap-1.5 text-xs transition-colors cursor-pointer ${
                         isSelected
-                          ? "bg-[#000080] text-white font-bold"
+                          ? "bg-[#13265C] text-white font-bold"
                           : "hover:bg-[#eef3ff] text-black"
                       }`}
                     >
@@ -434,8 +434,8 @@ export default function WorkPage() {
                     >
                       <div>
                         {/* Inset Thumbnail Window */}
-                        <div className="aspect-[16/10] bg-[#eef4ff] border-2 border-t-[#808080] border-l-[#808080] border-b-[#ffffff] border-r-[#ffffff] p-3 flex flex-col justify-between mb-2 overflow-hidden relative">
-                          <div className="flex justify-between items-center text-[9px] font-mono text-[#000080] font-bold">
+                        <div className="aspect-[16/10] bg-[#EBF1FF] border-2 border-t-[#808080] border-l-[#808080] border-b-[#ffffff] border-r-[#ffffff] p-3 flex flex-col justify-between mb-2 overflow-hidden relative">
+                          <div className="flex justify-between items-center text-[9px] font-mono text-[#13265C] font-bold">
                             <span>W100-2 DESIGN SYSTEM</span>
                             <span>TOKEN MATRIX</span>
                           </div>
@@ -443,10 +443,10 @@ export default function WorkPage() {
                           <div className="flex-1 flex flex-col justify-center items-center gap-1.5 my-1">
                             <div className="w-full flex gap-1">
                               <div className="h-2 w-1/3 bg-[#769EFD] rounded-xs" />
-                              <div className="h-2 w-2/3 bg-[#000080]/30 rounded-xs" />
+                              <div className="h-2 w-2/3 bg-[#13265C]/30 rounded-xs" />
                             </div>
                             <div className="w-full grid grid-cols-4 gap-1">
-                              <div className="h-9 bg-white border border-[#769EFD] rounded-xs flex items-center justify-center font-mono text-[8px] font-bold text-[#000080]">
+                              <div className="h-9 bg-white border border-[#769EFD] rounded-xs flex items-center justify-center font-mono text-[8px] font-bold text-[#13265C]">
                                 btn-pri
                               </div>
                               <div className="h-9 bg-white border border-[#cbd5e1] rounded-xs flex items-center justify-center font-mono text-[8px] text-[#64748b]">
@@ -466,7 +466,7 @@ export default function WorkPage() {
                         <div className="flex items-start gap-2">
                           <span className="text-base shrink-0">🎨</span>
                           <div className="min-w-0">
-                            <h3 className="font-bold text-xs text-black group-hover:text-[#000080] leading-tight">
+                            <h3 className="font-bold text-xs text-black group-hover:text-[#13265C] leading-tight">
                               Selected UI/UX Work
                             </h3>
                             <div className="text-[10px] text-[#555]">
@@ -480,7 +480,7 @@ export default function WorkPage() {
                         <span className="bg-white px-1.5 py-0.2 border border-[#808080] font-mono text-[#333]">
                           The Studio
                         </span>
-                        <span className="text-[#000080] font-bold group-hover:underline">
+                        <span className="text-[#224294] font-bold group-hover:underline">
                           Open File ➔
                         </span>
                       </div>
@@ -513,7 +513,7 @@ export default function WorkPage() {
                         <div className="flex items-start gap-2">
                           <span className="text-base shrink-0">🧭</span>
                           <div className="min-w-0">
-                            <h3 className="font-bold text-xs text-black group-hover:text-[#000080] leading-tight">
+                            <h3 className="font-bold text-xs text-black group-hover:text-[#13265C] leading-tight">
                               Learning From Place
                             </h3>
                             <div className="text-[10px] text-[#555]">
@@ -527,7 +527,7 @@ export default function WorkPage() {
                         <span className="bg-white px-1.5 py-0.2 border border-[#808080] font-mono text-[#333]">
                           The Workroom
                         </span>
-                        <span className="text-[#000080] font-bold group-hover:underline">
+                        <span className="text-[#224294] font-bold group-hover:underline">
                           Open File ➔
                         </span>
                       </div>
@@ -560,7 +560,7 @@ export default function WorkPage() {
                         <div className="flex items-start gap-2">
                           <span className="text-base shrink-0">📖</span>
                           <div className="min-w-0">
-                            <h3 className="font-bold text-xs text-black group-hover:text-[#000080] leading-tight">
+                            <h3 className="font-bold text-xs text-black group-hover:text-[#13265C] leading-tight">
                               The Hands That Forgot
                             </h3>
                             <div className="text-[10px] text-[#555]">
@@ -574,7 +574,7 @@ export default function WorkPage() {
                         <span className="bg-white px-1.5 py-0.2 border border-[#808080] font-mono text-[#333]">
                           The Library
                         </span>
-                        <span className="text-[#000080] font-bold group-hover:underline">
+                        <span className="text-[#224294] font-bold group-hover:underline">
                           Open File ➔
                         </span>
                       </div>
@@ -607,7 +607,7 @@ export default function WorkPage() {
                         <div className="flex items-start gap-2">
                           <span className="text-base shrink-0">🐋</span>
                           <div className="min-w-0">
-                            <h3 className="font-bold text-xs text-black group-hover:text-[#000080] leading-tight">
+                            <h3 className="font-bold text-xs text-black group-hover:text-[#13265C] leading-tight">
                               Cetacean Communication Station
                             </h3>
                             <div className="text-[10px] text-[#555]">
@@ -621,7 +621,7 @@ export default function WorkPage() {
                         <span className="bg-white px-1.5 py-0.2 border border-[#808080] font-mono text-[#333]">
                           The Cinema
                         </span>
-                        <span className="text-[#000080] font-bold group-hover:underline">
+                        <span className="text-[#224294] font-bold group-hover:underline">
                           Open File ➔
                         </span>
                       </div>
@@ -658,7 +658,7 @@ export default function WorkPage() {
                         <div className="flex items-start gap-2">
                           <span className="text-base shrink-0">🏠</span>
                           <div className="min-w-0">
-                            <h3 className="font-bold text-xs text-black group-hover:text-[#000080] leading-tight">
+                            <h3 className="font-bold text-xs text-black group-hover:text-[#13265C] leading-tight">
                               The House of Leaves Engine
                             </h3>
                             <div className="text-[10px] text-[#555]">
@@ -672,7 +672,7 @@ export default function WorkPage() {
                         <span className="bg-white px-1.5 py-0.2 border border-[#808080] font-mono text-[#333]">
                           Wander Mode
                         </span>
-                        <span className="text-[#000080] font-bold group-hover:underline">
+                        <span className="text-[#224294] font-bold group-hover:underline">
                           Launch 3D ➔
                         </span>
                       </div>
@@ -713,7 +713,7 @@ export default function WorkPage() {
                         <div className="flex items-start gap-2">
                           <span className="text-base shrink-0">📊</span>
                           <div className="min-w-0">
-                            <h3 className="font-bold text-xs text-black group-hover:text-[#000080] leading-tight">
+                            <h3 className="font-bold text-xs text-black group-hover:text-[#13265C] leading-tight">
                               Token Matrix & Foundations
                             </h3>
                             <div className="text-[10px] text-[#555]">
@@ -727,7 +727,7 @@ export default function WorkPage() {
                         <span className="bg-white px-1.5 py-0.2 border border-[#808080] font-mono text-[#333]">
                           Living Room
                         </span>
-                        <span className="text-[#000080] font-bold group-hover:underline">
+                        <span className="text-[#224294] font-bold group-hover:underline">
                           View Specs ➔
                         </span>
                       </div>
@@ -748,7 +748,7 @@ export default function WorkPage() {
                       href="https://www.behance.net/AshaniNath"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-[#000080] font-bold hover:underline flex items-center gap-1"
+                      className="text-xs text-[#224294] font-bold hover:underline flex items-center gap-1"
                     >
                       <span>View profile on behance.net/AshaniNath</span>
                       <span>↗</span>
@@ -778,7 +778,7 @@ export default function WorkPage() {
                           </div>
 
                           <div className="mt-1">
-                            <h3 className="font-bold text-xs text-black group-hover:text-[#000080] leading-tight">
+                            <h3 className="font-bold text-xs text-black group-hover:text-[#13265C] leading-tight">
                               {project.title}
                             </h3>
                             <div className="text-[10px] text-[#555] mt-0.5 line-clamp-2">
@@ -791,7 +791,7 @@ export default function WorkPage() {
                           <span className="bg-white px-1.5 py-0.2 border border-[#808080] font-mono text-[#333]">
                             {project.category}
                           </span>
-                          <span className="text-[#000080] font-bold group-hover:underline flex items-center gap-0.5">
+                          <span className="text-[#224294] font-bold group-hover:underline flex items-center gap-0.5">
                             <span>Behance</span>
                             <span>↗</span>
                           </span>
@@ -818,7 +818,7 @@ export default function WorkPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Category 1 */}
                   <div className="bg-white border-2 border-t-[#808080] border-l-[#808080] border-b-[#ffffff] border-r-[#ffffff] p-4 space-y-2">
-                    <h3 className="font-bold text-xs text-[#000080] border-b border-[#ddd] pb-1">
+                    <h3 className="font-bold text-xs text-[#13265C] border-b border-[#ddd] pb-1">
                       1. Product Design & Interaction Architecture
                     </h3>
                     <ul className="space-y-1.5 text-xs text-[#333]">
@@ -839,7 +839,7 @@ export default function WorkPage() {
 
                   {/* Category 2 */}
                   <div className="bg-white border-2 border-t-[#808080] border-l-[#808080] border-b-[#ffffff] border-r-[#ffffff] p-4 space-y-2">
-                    <h3 className="font-bold text-xs text-[#000080] border-b border-[#ddd] pb-1">
+                    <h3 className="font-bold text-xs text-[#13265C] border-b border-[#ddd] pb-1">
                       2. Situated Research & Service Design
                     </h3>
                     <ul className="space-y-1.5 text-xs text-[#333]">
@@ -860,7 +860,7 @@ export default function WorkPage() {
 
                   {/* Category 3 */}
                   <div className="bg-white border-2 border-t-[#808080] border-l-[#808080] border-b-[#ffffff] border-r-[#ffffff] p-4 space-y-2">
-                    <h3 className="font-bold text-xs text-[#000080] border-b border-[#ddd] pb-1">
+                    <h3 className="font-bold text-xs text-[#13265C] border-b border-[#ddd] pb-1">
                       3. Speculative Design, AI & Media
                     </h3>
                     <ul className="space-y-1.5 text-xs text-[#333]">
@@ -881,7 +881,7 @@ export default function WorkPage() {
 
                   {/* Category 4 */}
                   <div className="bg-white border-2 border-t-[#808080] border-l-[#808080] border-b-[#ffffff] border-r-[#ffffff] p-4 space-y-2">
-                    <h3 className="font-bold text-xs text-[#000080] border-b border-[#ddd] pb-1">
+                    <h3 className="font-bold text-xs text-[#13265C] border-b border-[#ddd] pb-1">
                       4. Technical Implementation & Creative Technology
                     </h3>
                     <ul className="space-y-1.5 text-xs text-[#333]">
@@ -917,7 +917,7 @@ export default function WorkPage() {
 
                 <div className="bg-white border-2 border-t-[#808080] border-l-[#808080] border-b-[#ffffff] border-r-[#ffffff] p-5 space-y-4 text-xs leading-relaxed text-[#222]">
                   <div>
-                    <h3 className="font-bold text-sm text-[#000080] mb-1">
+                    <h3 className="font-bold text-sm text-[#13265C] mb-1">
                       Practice Philosophy
                     </h3>
                     <p>
@@ -926,7 +926,7 @@ export default function WorkPage() {
                   </div>
 
                   <div className="border-t border-[#eee] pt-3">
-                    <h3 className="font-bold text-sm text-[#000080] mb-1">
+                    <h3 className="font-bold text-sm text-[#13265C] mb-1">
                       The Portfolio House Metaphor
                     </h3>
                     <p>
@@ -935,24 +935,24 @@ export default function WorkPage() {
                   </div>
 
                   <div className="border-t border-[#eee] pt-3">
-                    <h3 className="font-bold text-sm text-[#000080] mb-2">
+                    <h3 className="font-bold text-sm text-[#13265C] mb-2">
                       Selected Practice Domains
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
                       <div className="bg-[#f8f9fa] p-2.5 border border-[#ddd]">
-                        <span className="font-bold text-[#000080] block mb-0.5">The Studio (Product Systems)</span>
+                        <span className="font-bold text-[#13265C] block mb-0.5">The Studio (Product Systems)</span>
                         Production UX/UI, relational data hierarchies, multi-platform tokens, state machines.
                       </div>
                       <div className="bg-[#f8f9fa] p-2.5 border border-[#ddd]">
-                        <span className="font-bold text-[#000080] block mb-0.5">The Workroom (Ethnography)</span>
+                        <span className="font-bold text-[#13265C] block mb-0.5">The Workroom (Ethnography)</span>
                         Situated field observations, community interviews, geographic service blueprints.
                       </div>
                       <div className="bg-[#f8f9fa] p-2.5 border border-[#ddd]">
-                        <span className="font-bold text-[#000080] block mb-0.5">The Library (Tactile Print)</span>
+                        <span className="font-bold text-[#13265C] block mb-0.5">The Library (Tactile Print)</span>
                         Sequential visual narrative, printmaking resistances, manual dexterity and touch.
                       </div>
                       <div className="bg-[#f8f9fa] p-2.5 border border-[#ddd]">
-                        <span className="font-bold text-[#000080] block mb-0.5">The Cinema (Speculative Sound)</span>
+                        <span className="font-bold text-[#13265C] block mb-0.5">The Cinema (Speculative Sound)</span>
                         Interspecies machine listening, bioacoustic transducers, moving image projections.
                       </div>
                     </div>
@@ -983,7 +983,7 @@ export default function WorkPage() {
                         type="text"
                         readOnly
                         value="ashani.gorakhnath@gmail.com"
-                        className="bg-[#f0f0f0] border-2 border-t-[#808080] border-l-[#808080] border-b-[#ffffff] border-r-[#ffffff] px-3 py-1.5 text-xs font-mono font-bold text-[#000080] flex-1"
+                        className="bg-[#f0f0f0] border-2 border-t-[#808080] border-l-[#808080] border-b-[#ffffff] border-r-[#ffffff] px-3 py-1.5 text-xs font-mono font-bold text-[#13265C] flex-1"
                       />
                       <button
                         type="button"
@@ -1039,7 +1039,7 @@ export default function WorkPage() {
             </span>
           </div>
           <div className="flex items-center gap-2 font-mono text-[10px]">
-            <Link href="/" className="text-[#000080] font-bold hover:underline flex items-center gap-1">
+            <Link href="/" className="text-[#224294] font-bold hover:underline flex items-center gap-1">
               <span>[ Switch to 3D Wander Mode ]</span>
             </Link>
           </div>
@@ -1062,7 +1062,7 @@ export default function WorkPage() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Title Bar */}
-            <div className="h-8 bg-[#000080] text-white px-2.5 flex items-center justify-between font-bold text-xs">
+            <div className="h-8 bg-gradient-to-r from-[#13265C] via-[#436ECC] to-[#769EFD] text-white px-2.5 flex items-center justify-between font-bold text-xs">
               <div className="flex items-center gap-2 truncate">
                 <span>📄</span>
                 <span id="case-study-title" className="truncate">
@@ -1084,14 +1084,14 @@ export default function WorkPage() {
               {/* Header: Title, Subtitle, Category & Room */}
               <div className="border-b border-[#ddd] pb-3">
                 <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <span className="bg-[#eef4ff] text-[#000080] text-[10px] font-bold px-2 py-0.5 rounded border border-[#bcd3ff]">
+                  <span className="bg-[#EBF1FF] text-[#13265C] text-[10px] font-bold px-2 py-0.5 rounded border border-[#C3D6FE]">
                     {selectedProject.category}
                   </span>
                   <span className="bg-[#f0f0f0] text-[#555] text-[10px] font-mono px-2 py-0.5 border border-[#ddd]">
                     {selectedProject.roomName} ({selectedProject.roomId})
                   </span>
                 </div>
-                <h2 className="text-xl font-bold text-[#000080]">
+                <h2 className="text-xl font-bold text-[#13265C]">
                   {selectedProject.title}
                 </h2>
                 <p className="text-xs text-[#555] mt-0.5">
@@ -1100,8 +1100,8 @@ export default function WorkPage() {
               </div>
 
               {/* 1. ROLE */}
-              <div className="bg-[#f5f8ff] border-l-4 border-[#000080] p-3 rounded-r">
-                <div className="text-[10px] uppercase font-bold tracking-wider text-[#000080]">
+              <div className="bg-[#EBF1FF] border-l-4 border-[#769EFD] p-3 rounded-r">
+                <div className="text-[10px] uppercase font-bold tracking-wider text-[#13265C]">
                   1. Role:
                 </div>
                 <div className="text-xs font-bold text-black mt-0.5">
@@ -1151,10 +1151,10 @@ export default function WorkPage() {
                       className="p-3 bg-[#fafafa] border border-[#e5e5e5] rounded-xs"
                     >
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="w-5 h-5 bg-[#000080] text-white rounded-full flex items-center justify-center font-bold text-[10px]">
+                        <span className="w-5 h-5 bg-[#13265C] text-white rounded-full flex items-center justify-center font-bold text-[10px]">
                           {idx + 1}
                         </span>
-                        <h3 className="font-bold text-xs text-[#000080]">
+                        <h3 className="font-bold text-xs text-[#13265C]">
                           {pt.title}
                         </h3>
                       </div>
@@ -1185,7 +1185,7 @@ export default function WorkPage() {
                   {selectedProject.disciplines.map((skill) => (
                     <span
                       key={skill}
-                      className="px-2.5 py-1 bg-[#eef4ff] text-[#000080] border border-[#bcd3ff] text-xs font-semibold"
+                      className="px-2.5 py-1 bg-[#EBF1FF] text-[#13265C] border border-[#C3D6FE] text-xs font-semibold"
                     >
                       {skill}
                     </span>
@@ -1198,7 +1198,7 @@ export default function WorkPage() {
             <div className="h-11 bg-[#c0c0c0] px-3 flex items-center justify-between border-t-2 border-[#808080]">
               <Link
                 href="/"
-                className="text-[11px] text-[#000080] font-bold hover:underline flex items-center gap-1"
+                className="text-[11px] text-[#224294] font-bold hover:underline flex items-center gap-1"
               >
                 <span>🏠 Explore object in 3D House ({selectedProject.roomName}) &rarr;</span>
               </Link>

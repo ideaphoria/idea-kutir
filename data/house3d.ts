@@ -153,8 +153,10 @@ export const HOUSE_ROOMS_3D: Record<string, Room3D> = {
     description: "A lived-in personal art studio directly adjacent to the Study. Contains a large worktable, easel with paints, a pinboard of sketches, and a substantial gallery wall of signature-blue frames.",
     atmosphericNote: "Turpentine and linseed oil, natural daylight through the walkway window, vivid blue frames on the north wall.",
     level: "ground",
-    projectIds: [],
+    primaryProjectId: "monster-on-the-hill",
+    projectIds: ["monster-on-the-hill"],
     objectIds: [
+      "obj-studio-easel",
       "gallery-frame-1",
       "gallery-frame-2",
       "gallery-frame-3",
@@ -298,20 +300,33 @@ export const HOUSE_OBJECTS_3D: InteractiveObject3D[] = [
     roomId: "study",
     name: "Terminal Workstation",
     type: "Interactive Workstation",
-    description: "A desktop computer terminal resting on a solid walnut desk. The screen displays an active prompt in #0047BB connecting to the complete project directory.",
+    description: "A desktop computer terminal resting on a solid walnut desk. The screen displays an active prompt in signature blue #769EFD connecting to the complete project directory.",
     connectedProjectId: "selected-ui-ux",
     position: [8.4, 1.2, -18.0],
     interactionRadius: 2.8,
     propKind: "terminal",
   },
 
-  // Art Room Signature-Blue Gallery Frames (#0047BB)
+  // Art Room Studio Easel (Monster on the Hill)
+  {
+    id: "obj-studio-easel",
+    roomId: "art_room",
+    name: "Monster on the Hill",
+    type: "Artist Easel & Canvas",
+    description: "An artist's studio easel holding a stretched canvas finished in signature blue #769EFD. Features the project 'Monster on the Hill'.",
+    connectedProjectId: "monster-on-the-hill",
+    position: [9.20, 1.55, -9.56],
+    interactionRadius: 3.0,
+    propKind: "exhibit",
+  },
+
+  // Art Room Signature-Blue Gallery Frames (#769EFD)
   ...GALLERY_FRAMES.map((gf) => ({
     id: gf.id,
     roomId: "art_room",
     name: gf.title || "Gallery Frame Slot",
     type: "Signature Blue Frame",
-    description: "An architectural frame finished in signature blue #0047BB mounted to the art studio gallery wall.",
+    description: "An architectural frame finished in signature blue #769EFD mounted to the art studio gallery wall.",
     position: gf.position,
     interactionRadius: 3.2,
     propKind: "exhibit" as const,

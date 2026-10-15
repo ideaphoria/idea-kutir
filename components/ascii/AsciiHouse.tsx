@@ -1534,15 +1534,15 @@ export default function AsciiHouse() {
     addBox(1.8, 1.2, 1.8, -21.1, 5.8, -16.2, treeCanopyMaterial2);
     addBox(1.2, 0.8, 1.2, -21.0, 6.2, -16.1, treeCanopyMaterial3);
 
-// Additional Tree 2 (variation)
-addBox(0.7, 0.25, 0.7, 9, 0.12, -4, treeTrunkMaterial);
-addBox(0.44, 2.0, 0.44, 9, 1.1, -4, treeTrunkMaterial);
-addBox(0.38, 1.8, 0.38, 8.8, 2.8, -3.9, treeTrunkMaterial);
-addBox(1.2, 0.22, 0.22, 8.1, 2.5, -3.4, treeBranchMaterial);
-addBox(0.8, 0.18, 0.18, 7.5, 2.9, -2.8, treeBranchMaterial);
-addBox(1.9, 1.2, 1.7, 9, 3.2, -3.5, treeCanopyMaterial1);
-addBox(1.5, 0.9, 1.4, 9, 3.4, -3.3, treeCanopyMaterial2);
-addBox(1.0, 0.6, 1.0, 8.7, 3.5, -3.1, treeCanopyMaterial3);
+    // Additional Tree 2 (variation, exterior east garden lawn)
+    addBox(0.7, 0.25, 0.7, 17.5, 0.12, -1.0, treeTrunkMaterial);
+    addBox(0.44, 2.0, 0.44, 17.5, 1.1, -1.0, treeTrunkMaterial);
+    addBox(0.38, 1.8, 0.38, 17.3, 2.8, -0.9, treeTrunkMaterial);
+    addBox(1.2, 0.22, 0.22, 16.6, 2.5, -0.4, treeBranchMaterial);
+    addBox(0.8, 0.18, 0.18, 16.0, 2.9, 0.2, treeBranchMaterial);
+    addBox(1.9, 1.2, 1.7, 17.5, 3.2, -0.5, treeCanopyMaterial1);
+    addBox(1.5, 0.9, 1.4, 17.5, 3.4, -0.3, treeCanopyMaterial2);
+    addBox(1.0, 0.6, 1.0, 17.2, 3.5, -0.1, treeCanopyMaterial3);
 
 addBox(0.38, 1.8, 0.38, -22.3, 2.8, -15.4, treeTrunkMaterial);
 addBox(1.2, 0.22, 0.22, -21.6, 2.5, -14.8, treeBranchMaterial);
@@ -2224,17 +2224,17 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
     addBox(0.14, 0.10, 0.26, 8.55, 1.20, -18.85, deskLampShadeMaterial);
     addBox(0.08, 0.03, 0.18, 8.55, 1.14, -18.85, lampGlowMaterial);
 
-    // 4. Interactive Desktop Computer Workstation (Screen in #0047BB)
+    // 4. Interactive Desktop Computer Workstation (Screen in #769EFD)
     const computerScreenMaterial = new THREE.MeshLambertMaterial({
-      color: 0x0047bb,
-      emissive: 0x003399,
+      color: 0x769efd,
+      emissive: 0x224294,
       emissiveIntensity: 0.85,
     });
     // Monitor Stand & Housing
     addBox(0.24, 0.03, 0.28, 8.55, 0.805, -18.0, monitorBezelMaterial);
     addBox(0.08, 0.22, 0.10, 8.55, 0.92, -18.0, monitorBezelMaterial);
     addBox(0.24, 0.48, 0.66, 8.55, 1.24, -18.0, monitorBezelMaterial);
-    // Interactive Monitor Screen (Facing West towards player, finished in #0047BB)
+    // Interactive Monitor Screen (Facing West towards player, finished in #769EFD)
     addBox(0.02, 0.40, 0.58, 8.42, 1.24, -18.0, computerScreenMaterial);
     // Screen Bezel Trim
     addBox(0.04, 0.48, 0.04, 8.44, 1.24, -17.69, monitorBezelMaterial);
@@ -2330,10 +2330,10 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
       addBox(0.38, 0.08, 0.38, 13.6, 0.86, lz, stoneLanternMaterial);
     });
 
-    // ─── GALLERY WALL OF 7 SIGNATURE BLUE FRAMES (#0047BB) ───
+    // ─── GALLERY WALL OF 7 SIGNATURE BLUE FRAMES (#769EFD) ───
     const blueFrameMaterial = new THREE.MeshLambertMaterial({
-      color: 0x0047bb,
-      emissive: 0x0033bb,
+      color: 0x769efd,
+      emissive: 0x224294,
       emissiveIntensity: 0.75,
     });
     const emptyCanvasMatte = new THREE.MeshLambertMaterial({
@@ -2346,7 +2346,7 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
       color: 0x010101,
       emissive: 0x000000,
     });
-    const frameInnerShadow = new THREE.MeshLambertMaterial({ color: 0x001438 });
+    const frameInnerShadow = new THREE.MeshLambertMaterial({ color: 0x13265c });
     const frameWireMaterial = new THREE.MeshLambertMaterial({ color: 0x888888 });
 
     GALLERY_FRAMES.forEach((gf) => {
@@ -2435,10 +2435,23 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
     addBox(0.08, 2.35, 0.06, 9.20, 1.20, -9.65, studioLightWoodMaterial);
     // Lower crank shelf tray
     addBox(0.95, 0.05, 0.22, 9.20, 1.05, -9.60, studioWoodMaterial);
-    // Top canvas clamp
-    addBox(0.24, 0.06, 0.12, 9.20, 2.05, -9.63, studioWoodMaterial);
-    // Primed blank canvas on easel (1.1m x 0.9m)
-    addBox(1.10, 0.90, 0.04, 9.20, 1.55, -9.56, canvasMaterial);
+    // Signature Blue Canvas on easel (1.1m x 0.9m in signature blue #769EFD)
+    const easelCanvasMaterial = new THREE.MeshLambertMaterial({
+      color: 0x769efd,
+      emissive: 0x224294,
+      emissiveIntensity: 0.55,
+    });
+    const easelCanvasMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(1.10, 0.90, 0.04),
+      easelCanvasMaterial
+    );
+    easelCanvasMesh.position.set(9.20, 1.55, -9.56);
+    easelCanvasMesh.userData = {
+      isEaselCanvas: true,
+      objectId: "obj-studio-easel",
+    };
+    houseGroup.add(easelCanvasMesh);
+    galleryArtMeshes.push(easelCanvasMesh);
     addBox(1.12, 0.92, 0.02, 9.20, 1.55, -9.58, canvasEdgeMaterial);
     // Wooden palette on easel shelf
     addBox(0.42, 0.015, 0.28, 8.95, 1.08, -9.55, paletteWoodMaterial);
@@ -2529,8 +2542,8 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
     const markerMeshes: { mesh: THREE.Mesh; objId: string }[] = [];
 
     HOUSE_OBJECTS_3D.forEach((item) => {
-      // Gallery wall frames are rendered in signature blue (#0047BB); omit wireframe markers so frames are clean
-      if (item.id.startsWith("gallery-frame-")) return;
+      // Gallery wall frames and studio easel canvas are rendered in signature blue (#769EFD); omit wireframe markers so presentation is clean
+      if (item.id.startsWith("gallery-frame-") || item.id === "obj-studio-easel") return;
       const markerGeo = new THREE.OctahedronGeometry(0.16, 0);
       const markerMat = new THREE.MeshBasicMaterial({
         color: 0x769efd,
@@ -2764,8 +2777,8 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
     deskTaskLight.position.set(8.55, 1.35, -18.85);
     scene.add(deskTaskLight);
 
-    // Interactive Blue Monitor Glow Point Light (#0047BB)
-    const monitorGlowLight = new THREE.PointLight(0x0047bb, 3.2, 5.5);
+    // Interactive Blue Monitor Glow Point Light (#769EFD)
+    const monitorGlowLight = new THREE.PointLight(0x769efd, 3.2, 5.5);
     monitorGlowLight.position.set(8.1, 1.25, -18.0);
     scene.add(monitorGlowLight);
 
@@ -2951,6 +2964,16 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
       const intersects = clickRaycaster.intersectObjects(galleryArtMeshes, false);
       if (intersects.length > 0) {
         const hit = intersects[0].object;
+        if (hit.userData?.isEaselCanvas) {
+          const easelObj = HOUSE_OBJECTS_3D.find((o) => o.id === "obj-studio-easel");
+          if (easelObj) {
+            if (navigatorRef.current) {
+              navigatorRef.current.exitLock();
+            }
+            setInspectedObject(easelObj);
+          }
+          return;
+        }
         const dest = hit.userData?.destinationUrl;
         if (dest) {
           window.open(dest, "_blank", "noopener,noreferrer");

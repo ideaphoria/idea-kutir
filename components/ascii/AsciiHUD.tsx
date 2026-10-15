@@ -63,14 +63,14 @@ export default function AsciiHUD({
       <header className="flex flex-row items-center justify-between gap-2 pointer-events-auto font-sans flex-wrap sm:flex-nowrap">
         {/* Navigation & Location Toolbar */}
         <div className="flex items-center bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black p-0.5 sm:p-1 shadow-md gap-1 sm:gap-1.5 text-black">
-          <div className="px-1.5 sm:px-2 py-0.5 bg-gradient-to-r from-[#000080] to-[#1084d0] text-white text-[10px] sm:text-[11px] font-bold flex items-center gap-1 select-none">
+          <div className="px-1.5 sm:px-2 py-0.5 bg-gradient-to-r from-[#13265C] via-[#436ECC] to-[#769EFD] text-white text-[10px] sm:text-[11px] font-bold flex items-center gap-1 select-none">
             <span>🏛</span>
             <span>Idea Kutir</span>
           </div>
           <div className="border border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white px-1.5 sm:px-2 py-0.5 text-[11px] sm:text-xs text-black flex items-center gap-1 sm:gap-1.5 select-text">
             <span className="font-bold">{floorLabel}</span>
             <span className="text-[#808080]">|</span>
-            <span className="font-semibold text-[#000080]">{currentRoom.name}</span>
+            <span className="font-semibold text-[#13265C]">{currentRoom.name}</span>
             <span className="hidden md:inline text-[10px] text-[#555] border-l border-[#ccc] pl-1.5 font-mono">
               {currentRoom.subtitle || currentRoom.discipline}
             </span>
@@ -120,7 +120,7 @@ export default function AsciiHUD({
               title="Switch to Professional Portfolio (Work Mode)"
             >
               <span>Work</span>
-              <span className="text-[#000080] font-bold">&rarr;</span>
+              <span className="text-[#224294] font-bold">&rarr;</span>
             </a>
           </div>
         </div>
@@ -129,7 +129,7 @@ export default function AsciiHUD({
       {/* Floating Toast Notification */}
       {toastMessage && (
         <div className="fixed top-20 right-6 pointer-events-none z-50 animate-fade-in">
-          <div className="bg-[#0e1222]/95 border border-[#0047BB] text-[#00e5ff] px-4 py-2 text-xs rounded shadow-2xl backdrop-blur-md">
+          <div className="bg-[#0e1222]/95 border border-[#769EFD] text-[#C3D6FE] px-4 py-2 text-xs rounded shadow-2xl backdrop-blur-md">
             {toastMessage}
           </div>
         </div>
@@ -161,7 +161,7 @@ export default function AsciiHUD({
               tabIndex={0}
               className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black shadow-[2px_2px_0px_rgba(0,0,0,0.7)] p-2 text-center cursor-pointer font-sans min-w-[220px]"
             >
-              <div className="bg-gradient-to-r from-[#000080] to-[#1084d0] text-white text-[11px] font-bold px-2 py-0.5 mb-1.5 flex justify-between items-center select-none">
+              <div className="bg-gradient-to-r from-[#13265C] via-[#436ECC] to-[#769EFD] text-white text-[11px] font-bold px-2 py-0.5 mb-1.5 flex justify-between items-center select-none">
                 <span>INTERACT</span>
                 <span className="font-mono text-yellow-300 font-bold">[ E ]</span>
               </div>
@@ -189,7 +189,7 @@ export default function AsciiHUD({
             data-touch-bypass="true"
           >
             <div className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black p-4 shadow-[2px_2px_0px_rgba(0,0,0,0.7)] text-center max-w-sm font-sans">
-              <div className="bg-gradient-to-r from-[#000080] to-[#1084d0] text-white text-xs font-bold px-2 py-1 mb-2.5 select-none">
+              <div className="bg-gradient-to-r from-[#13265C] via-[#436ECC] to-[#769EFD] text-white text-xs font-bold px-2 py-1 mb-2.5 select-none">
                 IDEA KUTIR — 3D ARCHITECTURAL ARCHIVE
               </div>
               <div className="border border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white p-3 mb-3">
@@ -224,7 +224,7 @@ export default function AsciiHUD({
       <footer className="w-full hidden lg:flex flex-col sm:flex-row items-end sm:items-center justify-between gap-3 pointer-events-auto font-sans">
         {/* Controls Legend (Retro Utility Window) - Shown on desktop */}
         <div className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black p-1 shadow-[2px_2px_0px_rgba(0,0,0,0.7)] w-64 pointer-events-auto text-[11px] text-black">
-          <div className="h-5 px-1 bg-gradient-to-r from-[#000080] to-[#1084d0] text-white font-bold flex items-center justify-between select-none">
+          <div className="h-5 px-1 bg-gradient-to-r from-[#13265C] via-[#436ECC] to-[#769EFD] text-white font-bold flex items-center justify-between select-none">
             <span className="text-[10px] tracking-wide">CONTROLS.INI</span>
             <button
               type="button"

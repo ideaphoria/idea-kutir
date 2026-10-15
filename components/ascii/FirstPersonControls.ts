@@ -274,8 +274,8 @@ export class FirstPersonNavigator {
       if (x >= 5.8 && x <= 8.2 && z >= -5.6 && z <= -4.0) {
         return false;
       }
-      // Solid collision for easel base (X: 9.3 to 10.3, Z: -7.7 to -6.7)
-      if (x >= 9.3 && x <= 10.3 && z >= -7.7 && z <= -6.7) {
+      // Solid collision for easel base (X: 8.6 to 9.8, Z: -10.5 to -9.3)
+      if (x >= 8.6 && x <= 9.8 && z >= -10.5 && z <= -9.3) {
         return false;
       }
       return true;

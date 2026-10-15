@@ -15,7 +15,7 @@ export interface GalleryFrameConfig {
 /**
  * Gallery Wall Configuration
  * Every frame is initially empty (title empty, imagePath unset, destinationUrl unset).
- * Rendered in signature blue #0047BB.
+ * Rendered in signature blue #769EFD.
  */
 export const GALLERY_FRAMES: GalleryFrameConfig[] = [
   // Upper Tier

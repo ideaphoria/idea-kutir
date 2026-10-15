@@ -56,7 +56,7 @@ export default function NavigationHUDModal({
         className="w-full max-w-2xl bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black shadow-[2px_2px_0px_rgba(0,0,0,0.7)] text-black flex flex-col max-h-[94vh]"
       >
         {/* Title Bar */}
-        <header className="h-7 sm:h-6 px-1.5 flex items-center justify-between select-none bg-gradient-to-r from-[#000080] to-[#1084d0] text-white">
+        <header className="h-7 sm:h-6 px-1.5 flex items-center justify-between select-none bg-gradient-to-r from-[#13265C] via-[#436ECC] to-[#769EFD] text-white">
           <div className="flex items-center gap-1.5 text-xs font-bold truncate">
             <span>🗺️</span>
             <span>Idea Kutir — Architectural Directory [TAB]</span>
@@ -123,7 +123,7 @@ export default function NavigationHUDModal({
 
                 <div className="shrink-0 self-end sm:self-center">
                   {isCurrent ? (
-                    <span className="px-2.5 py-1 bg-white border border-[#808080] text-[#000080] text-[11px] font-bold tracking-wide">
+                    <span className="px-2.5 py-1 bg-white border border-[#808080] text-[#13265C] text-[11px] font-bold tracking-wide">
                       CURRENT ROOM
                     </span>
                   ) : (

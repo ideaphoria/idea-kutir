@@ -106,7 +106,7 @@ export default function ProjectDirectoryModal({
         className="w-full max-w-4xl bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black shadow-[2px_2px_0px_rgba(0,0,0,0.7)] text-black flex flex-col max-h-[94vh] overflow-hidden"
       >
         {/* Title Bar */}
-        <header className="h-7 sm:h-6 px-1.5 flex items-center justify-between select-none bg-gradient-to-r from-[#000080] to-[#1084d0] text-white">
+        <header className="h-7 sm:h-6 px-1.5 flex items-center justify-between select-none bg-gradient-to-r from-[#13265C] via-[#436ECC] to-[#769EFD] text-white">
           <div className="flex items-center gap-1.5 text-xs font-bold truncate">
             <span>💻</span>
             <span>IDEA KUTIR — STUDY COMPUTER · BEHANCE PROJECTS</span>
@@ -158,7 +158,7 @@ export default function ProjectDirectoryModal({
             <div className="space-y-3">
               {/* Introduction Panel */}
               <div className="border-2 border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white p-3 sm:p-4">
-                <div className="text-xs font-bold text-[#000080] mb-1 flex items-center justify-between">
+                <div className="text-xs font-bold text-[#13265C] mb-1 flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <span>📁</span>
                     <span>BEHANCE PORTFOLIO ARCHIVES · ASHANI NATH (@AshaniNath)</span>
@@ -167,7 +167,7 @@ export default function ProjectDirectoryModal({
                     href="https://www.behance.net/AshaniNath"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-[11px] text-[#000080] hover:underline font-bold flex items-center gap-1"
+                    className="text-[11px] text-[#224294] hover:underline font-bold flex items-center gap-1"
                   >
                     behance.net/AshaniNath ↗
                   </a>
@@ -202,7 +202,7 @@ export default function ProjectDirectoryModal({
                       {/* Title & Subtitle Beneath Thumbnail */}
                       <div className="mt-2.5">
                         <div className="flex items-baseline justify-between gap-1 mb-0.5">
-                          <h3 className="text-sm font-bold text-black group-hover:text-[#000080] leading-snug">
+                          <h3 className="text-sm font-bold text-black group-hover:text-[#13265C] leading-snug">
                             {project.title}
                           </h3>
                         </div>
@@ -217,7 +217,7 @@ export default function ProjectDirectoryModal({
                       <span className="border border-[#808080]/40 bg-[#efefef] px-1.5 py-0.5 text-[10px] font-mono text-black">
                         {project.category}
                       </span>
-                      <span className="text-xs font-bold text-[#000080] group-hover:underline flex items-center gap-0.5">
+                      <span className="text-xs font-bold text-[#224294] group-hover:underline flex items-center gap-0.5">
                         <span>Open on Behance</span>
                         <span>↗</span>
                       </span>
@@ -290,7 +290,7 @@ export default function ProjectDirectoryModal({
 
               {/* Overview Panel */}
               <div className="border-2 border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white p-3 sm:p-4">
-                <div className="text-xs font-bold text-[#000080] mb-1.5 flex items-center gap-1.5">
+                <div className="text-xs font-bold text-[#13265C] mb-1.5 flex items-center gap-1.5">
                   <span>📖</span>
                   <span>SYSTEM OVERVIEW</span>
                 </div>
@@ -302,7 +302,7 @@ export default function ProjectDirectoryModal({
               {/* Process Points */}
               {activeProject.processPoints && activeProject.processPoints.length > 0 && (
                 <div className="border-2 border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white p-3 sm:p-4">
-                  <div className="text-xs font-bold text-[#000080] mb-2.5 flex items-center gap-1.5">
+                  <div className="text-xs font-bold text-[#13265C] mb-2.5 flex items-center gap-1.5">
                     <span>⚙️</span>
                     <span>ARCHITECTURE &amp; PROCESS MILESTONES</span>
                   </div>
@@ -313,7 +313,7 @@ export default function ProjectDirectoryModal({
                         className="border border-[#808080]/30 bg-[#fafafa] p-2.5"
                       >
                         <div className="text-xs font-bold text-black mb-1 flex items-center gap-1.5">
-                          <span className="font-mono text-[#000080] text-[11px]">
+                          <span className="font-mono text-[#224294] text-[11px]">
                             0{idx + 1}.
                           </span>
                           <span>{point.title}</span>
@@ -330,7 +330,7 @@ export default function ProjectDirectoryModal({
               {/* Outcomes & Artifacts */}
               {activeProject.outcomesPlaceholder && (
                 <div className="border-2 border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white p-3 sm:p-4">
-                  <div className="text-xs font-bold text-[#000080] mb-1.5 flex items-center gap-1.5">
+                  <div className="text-xs font-bold text-[#13265C] mb-1.5 flex items-center gap-1.5">
                     <span>📦</span>
                     <span>OUTCOMES &amp; DELIVERABLES</span>
                   </div>

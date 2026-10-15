@@ -48,7 +48,7 @@ export default function InventoryModal({
         className="w-full max-w-2xl bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black shadow-[2px_2px_0px_rgba(0,0,0,0.7)] text-black flex flex-col max-h-[94vh]"
       >
         {/* Title Bar */}
-        <header className="h-7 sm:h-6 px-1.5 flex items-center justify-between select-none bg-gradient-to-r from-[#000080] to-[#1084d0] text-white">
+        <header className="h-7 sm:h-6 px-1.5 flex items-center justify-between select-none bg-gradient-to-r from-[#13265C] via-[#436ECC] to-[#769EFD] text-white">
           <div className="flex items-center gap-1.5 text-xs font-bold truncate">
             <span>💼</span>
             <span>Idea Kutir — Satchel Archive [I]</span>
@@ -92,7 +92,7 @@ export default function InventoryModal({
                     onClose();
                     onSelectObject(obj);
                   }}
-                  className="group cursor-pointer bg-white hover:bg-[#000080] text-black hover:text-white border-2 border-t-[#808080] border-l-[#808080] border-b-white border-r-white p-2.5 flex flex-col justify-between shadow-sm transition-none"
+                  className="group cursor-pointer bg-white hover:bg-[#13265C] text-black hover:text-white border-2 border-t-[#808080] border-l-[#808080] border-b-white border-r-white p-2.5 flex flex-col justify-between shadow-sm transition-none"
                 >
                   <div>
                     <div className="flex items-center justify-between text-xs font-bold mb-1">
@@ -112,7 +112,7 @@ export default function InventoryModal({
                     <span className="uppercase text-[#666] group-hover:text-gray-200">
                       Room: {obj.roomId.replace("_", " ")}
                     </span>
-                    <span className="font-bold uppercase text-[#000080] group-hover:text-yellow-300">
+                    <span className="font-bold uppercase text-[#224294] group-hover:text-yellow-300">
                       Open Dossier &rarr;
                     </span>
                   </div>

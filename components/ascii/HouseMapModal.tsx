@@ -36,7 +36,7 @@ export default function HouseMapModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Title Bar */}
-        <header className="h-7 sm:h-6 px-1.5 flex items-center justify-between select-none bg-gradient-to-r from-[#000080] to-[#1084d0] text-white">
+        <header className="h-7 sm:h-6 px-1.5 flex items-center justify-between select-none bg-gradient-to-r from-[#13265C] via-[#436ECC] to-[#769EFD] text-white">
           <div className="flex items-center gap-1.5 text-xs font-bold truncate">
             <span>📐</span>
             <span>Idea Kutir — Floor Blueprint [M]</span>
@@ -87,7 +87,7 @@ export default function HouseMapModal({
                  │ (Doorway Z: -7.5)                   │
                  │                       ┌─────────────┴─────────────┐
                  │                       │ [04] THE ART ROOM         │
-                 │                       │  · 7 Blue Frames (#0047BB)│
+                 │                       │  · 7 Blue Frames (#769EFD)│
                  │                       │  · Easel, Table, Pinboard │
                  │                       │  · Walkway East Window    │
                  │                       └─────────────┬─────────────┘
@@ -100,7 +100,7 @@ export default function HouseMapModal({
 
           {/* Active Sectors Navigation */}
           <div className="border-2 border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white p-3">
-            <div className="text-[11px] font-bold text-[#000080] mb-2 flex items-center gap-1">
+            <div className="text-[11px] font-bold text-[#13265C] mb-2 flex items-center gap-1">
               <span>🚪</span> Fast Navigation — Active Sectors:
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-5 gap-2">
@@ -126,7 +126,7 @@ export default function HouseMapModal({
                         : WIN95.classes.btn
                     }`}
                   >
-                    <div className="text-[10px] font-mono font-bold text-[#000080]">
+                    <div className="text-[10px] font-mono font-bold text-[#13265C]">
                       [{room.num}] {isCurrent ? "📍 CURRENT" : ""}
                     </div>
                     <div className="text-xs font-bold text-black mt-0.5">

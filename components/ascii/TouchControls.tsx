@@ -365,15 +365,15 @@ export default function TouchControls({
             }}
             className="min-h-[50px] px-4 py-2.5 bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black active:border-t-black active:border-l-black active:border-b-white active:border-r-white text-black font-sans font-bold text-xs shadow-[3px_3px_0px_rgba(0,0,0,0.8)] cursor-pointer flex items-center gap-2.5 select-none"
             style={{
-              outline: "1px solid #0047BB",
+              outline: "1px solid #769EFD",
             }}
           >
             {/* Glowing Signature Blue Pill Indicator */}
             <span
               className="w-2.5 h-2.5 rounded-full animate-pulse shrink-0"
-              style={{ backgroundColor: "#0047BB" }}
+              style={{ backgroundColor: "#769EFD" }}
             />
-            <span className="tracking-wide uppercase text-[11px] sm:text-xs text-[#000080]">
+            <span className="tracking-wide uppercase text-[11px] sm:text-xs text-[#13265C]">
               {getInteractLabel()}
             </span>
           </button>

@@ -41,7 +41,7 @@ export default function ObjectInspector({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Title Bar */}
-        <header className="h-7 sm:h-6 px-1.5 flex items-center justify-between select-none bg-gradient-to-r from-[#000080] to-[#1084d0] text-white">
+        <header className="h-7 sm:h-6 px-1.5 flex items-center justify-between select-none bg-gradient-to-r from-[#13265C] via-[#436ECC] to-[#769EFD] text-white">
           <div className="flex items-center gap-1.5 text-xs font-bold truncate">
             <span>📄</span>
             <span>Object Properties — {object.name}</span>
@@ -75,7 +75,7 @@ export default function ObjectInspector({
         <div className="p-3 sm:p-4 overflow-y-auto flex-1 bg-[#c0c0c0] space-y-3 font-sans">
           {/* Object Description Panel */}
           <div className="border-2 border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white p-3 sm:p-4">
-            <div className="text-xs font-bold text-[#000080] mb-1.5 flex items-center gap-1">
+            <div className="text-xs font-bold text-[#13265C] mb-1.5 flex items-center gap-1">
               <span>📌</span> Description &amp; Architectural Context
             </div>
             <p className="text-xs text-black leading-relaxed font-sans select-text">
@@ -134,13 +134,30 @@ export default function ObjectInspector({
                   <ul className="space-y-1.5 text-xs text-black">
                     {project.processPoints.map((pt, idx) => (
                       <li key={idx} className="flex items-start gap-1.5">
-                        <span className="text-[#000080] font-bold">&bull;</span>
+                        <span className="text-[#224294] font-bold">&bull;</span>
                         <span>
                           <strong>{pt.title}:</strong> {pt.description}
                         </span>
                       </li>
                     ))}
                   </ul>
+                </div>
+              )}
+
+              {/* External Portfolio / Behance Link */}
+              {project.externalUrl && (
+                <div className="mt-3 pt-3 border-t border-[#808080]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-[#EBF1FF] p-2.5 border border-[#C3D6FE]">
+                  <p className="text-xs text-[#13265C] leading-snug">
+                    Explore the complete project and artwork on Behance:
+                  </p>
+                  <a
+                    href={project.externalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`${WIN95.classes.btn} font-bold text-xs inline-flex items-center gap-1.5 shrink-0 text-[#13265C] hover:text-[#224294]`}
+                  >
+                    <span>↗</span> View Project on Behance
+                  </a>
                 </div>
               )}
             </div>
