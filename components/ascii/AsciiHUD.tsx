@@ -185,15 +185,15 @@ export default function AsciiHUD({
           !isInspecting &&
           !hoveredObject && (
           <div
-            className="mt-6 pointer-events-auto z-30"
+            className="mt-2 sm:mt-6 pointer-events-auto z-30"
             data-touch-bypass="true"
           >
-            <div className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black p-4 shadow-[2px_2px_0px_rgba(0,0,0,0.7)] text-center max-w-sm font-sans">
-              <div className="bg-gradient-to-r from-[#13265C] via-[#436ECC] to-[#769EFD] text-white text-xs font-bold px-2 py-1 mb-2.5 select-none">
+            <div className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black p-2.5 sm:p-4 shadow-[2px_2px_0px_rgba(0,0,0,0.7)] text-center max-w-[280px] sm:max-w-sm font-sans">
+              <div className="bg-gradient-to-r from-[#13265C] via-[#436ECC] to-[#769EFD] text-white text-[11px] sm:text-xs font-bold px-2 py-0.5 sm:py-1 mb-1.5 sm:mb-2.5 select-none">
                 IDEA KUTIR — 3D ARCHITECTURAL ARCHIVE
               </div>
-              <div className="border border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white p-3 mb-3">
-                <p className="text-xs text-black leading-relaxed">
+              <div className="border border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white p-2 sm:p-3 mb-2 sm:mb-3">
+                <p className="text-[11px] sm:text-xs text-black leading-relaxed">
                   Click anywhere or press WASD to start exploring the house.
                 </p>
               </div>
@@ -209,7 +209,7 @@ export default function AsciiHUD({
                   e.preventDefault();
                   onEnterHouse ? onEnterHouse() : onRequestPointerLock();
                 }}
-                className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black active:border-t-black active:border-l-black active:border-b-white active:border-r-white py-1 px-4 text-xs font-bold text-black shadow-sm inline-block cursor-pointer select-none"
+                className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black active:border-t-black active:border-l-black active:border-b-white active:border-r-white py-1 px-3 sm:px-4 text-[11px] sm:text-xs font-bold text-black shadow-sm inline-block cursor-pointer select-none"
               >
                 [ ENTER HOUSE ]
               </button>

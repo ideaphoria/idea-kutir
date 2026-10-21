@@ -233,7 +233,7 @@ export default function DialogueBox({
   // Positioning: Appearances 1-5 remain bottom-centered; 6+ chooses from UNPREDICTABLE_POSITIONS
   const positionClass =
     !appearanceCount || appearanceCount <= 5
-      ? "bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2"
+      ? "bottom-2 sm:bottom-8 left-1/2 -translate-x-1/2"
       : UNPREDICTABLE_POSITIONS[(appearanceCount - 6) % UNPREDICTABLE_POSITIONS.length];
 
   return (
@@ -261,7 +261,7 @@ export default function DialogueBox({
             handleAdvance();
           }
         }}
-        className={`fixed z-50 ${positionClass} max-h-[92vh] overflow-y-auto w-[min(380px,92vw)] select-none font-sans pointer-events-auto cursor-pointer`}
+        className={`fixed z-50 ${positionClass} max-h-[85vh] overflow-y-auto w-[min(380px,92vw)] select-none font-sans pointer-events-auto cursor-pointer`}
         style={{
           backgroundColor: "#c0c0c0",
           boxShadow: "2px 2px 0px rgba(0,0,0,0.7)",

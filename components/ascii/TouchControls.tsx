@@ -85,24 +85,25 @@ export default function TouchControls({
       const rect = joystickBaseRef.current.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height / 2;
+      const dynamicRadius = Math.max(36, rect.width / 2 - 14);
 
       const dx = clientX - centerX;
       const dy = clientY - centerY;
       const distance = Math.hypot(dx, dy);
 
-      const clampedDist = Math.min(JOYSTICK_RADIUS, distance);
-      const normX = distance > 0 ? (dx / distance) * (clampedDist / JOYSTICK_RADIUS) : 0;
-      const normY = distance > 0 ? (dy / distance) * (clampedDist / JOYSTICK_RADIUS) : 0;
+      const clampedDist = Math.min(dynamicRadius, distance);
+      const normX = distance > 0 ? (dx / distance) * (clampedDist / dynamicRadius) : 0;
+      const normY = distance > 0 ? (dy / distance) * (clampedDist / dynamicRadius) : 0;
 
       setKnobPos({
-        x: normX * JOYSTICK_RADIUS,
-        y: normY * JOYSTICK_RADIUS,
+        x: normX * dynamicRadius,
+        y: normY * dynamicRadius,
       });
 
       // Forward in 3D world is -Y in screen coordinates (swiping up)
       navigator.setJoystickInput(normX, -normY);
     },
-    [navigator, JOYSTICK_RADIUS]
+    [navigator]
   );
 
   const handleJoystickTouchStart = useCallback(
@@ -270,12 +271,10 @@ export default function TouchControls({
           VIRTUAL JOYSTICK (Bottom-Left Thumb Zone)
           ───────────────────────────────────────────────────────── */}
       <div
-        className="absolute pointer-events-auto touch-none"
+        className="absolute pointer-events-auto touch-none w-[106px] h-[106px] sm:w-[124px] sm:h-[124px]"
         style={{
-          width: 124,
-          height: 124,
-          bottom: "max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 0.5rem))",
-          left: "max(1.5rem, calc(env(safe-area-inset-left, 0px) + 0.5rem))",
+          bottom: "max(1rem, calc(env(safe-area-inset-bottom, 0px) + 0.35rem))",
+          left: "max(1rem, calc(env(safe-area-inset-left, 0px) + 0.35rem))",
         }}
       >
         {/* Joystick Base Pad: Translucent White with 40% Opacity Accents */}
@@ -352,8 +351,8 @@ export default function TouchControls({
         <div
           className="absolute pointer-events-auto"
           style={{
-            bottom: "max(2rem, calc(env(safe-area-inset-bottom, 0px) + 0.5rem))",
-            right: "max(1.5rem, calc(env(safe-area-inset-right, 0px) + 0.5rem))",
+            bottom: "max(1.25rem, calc(env(safe-area-inset-bottom, 0px) + 0.35rem))",
+            right: "max(1.25rem, calc(env(safe-area-inset-right, 0px) + 0.35rem))",
           }}
         >
           <button
@@ -363,7 +362,7 @@ export default function TouchControls({
               e.stopPropagation();
               onInteract();
             }}
-            className="min-h-[50px] px-4 py-2.5 bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black active:border-t-black active:border-l-black active:border-b-white active:border-r-white text-black font-sans font-bold text-xs shadow-[3px_3px_0px_rgba(0,0,0,0.8)] cursor-pointer flex items-center gap-2.5 select-none"
+            className="min-h-[44px] sm:min-h-[50px] px-3 sm:px-4 py-2 sm:py-2.5 bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black active:border-t-black active:border-l-black active:border-b-white active:border-r-white text-black font-sans font-bold text-xs shadow-[3px_3px_0px_rgba(0,0,0,0.8)] cursor-pointer flex items-center gap-2 sm:gap-2.5 select-none"
             style={{
               outline: "1px solid #769EFD",
             }}

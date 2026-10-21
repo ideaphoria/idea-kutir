@@ -728,9 +728,18 @@ export default function AsciiHouse() {
     // scene.background removed for custom sky gradient
 }
 
+    const initialWidth =
+      typeof window !== "undefined" && window.visualViewport
+        ? Math.round(window.visualViewport.width)
+        : (container.clientWidth || (typeof window !== "undefined" ? window.innerWidth : 800));
+    const initialHeight =
+      typeof window !== "undefined" && window.visualViewport
+        ? Math.round(window.visualViewport.height)
+        : (container.clientHeight || (typeof window !== "undefined" ? window.innerHeight : 600));
+
     const camera = new THREE.PerspectiveCamera(
       65,
-      container.clientWidth / container.clientHeight,
+      initialWidth / initialHeight,
       0.1,
       200
     );
@@ -784,7 +793,7 @@ export default function AsciiHouse() {
     }
 
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setSize(initialWidth, initialHeight);
 
     // Custom Architectural ASCII Renderer with perceptual tone-mapping & edge contours
     const effect = new CustomAsciiRenderer(renderer, " .·:+*x%@#", {
@@ -798,7 +807,7 @@ export default function AsciiHouse() {
       edgeThreshold: 0.22, // Better contour detail on surfaces
       floorCeilingBoost: 0.08, // Avoid deep black crush on architectural surfaces
     });
-    effect.setSize(container.clientWidth, container.clientHeight);
+    effect.setSize(initialWidth, initialHeight);
 
     const asciiDom = effect.domElement;
     asciiDom.tabIndex = 0;
@@ -2988,8 +2997,20 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
     // ─────────────────────────────────────────────────────────────
     const handleResize = () => {
       if (!container) return;
-      const width = container.clientWidth;
-      const height = container.clientHeight;
+      let width = 0;
+      let height = 0;
+      if (typeof window !== "undefined") {
+        if (window.visualViewport) {
+          width = Math.round(window.visualViewport.width);
+          height = Math.round(window.visualViewport.height);
+        } else {
+          width = container.clientWidth || window.innerWidth;
+          height = container.clientHeight || window.innerHeight;
+        }
+      } else {
+        width = container.clientWidth;
+        height = container.clientHeight;
+      }
       if (width === 0 || height === 0) return;
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
@@ -2998,8 +3019,10 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
 
     const handleOrientationChange = () => {
       handleResize();
-      setTimeout(handleResize, 100);
-      setTimeout(handleResize, 300);
+      setTimeout(handleResize, 50);
+      setTimeout(handleResize, 150);
+      setTimeout(handleResize, 350);
+      setTimeout(handleResize, 600);
     };
 
     const resizeObserver = new ResizeObserver(() => handleResize());
@@ -3054,7 +3077,7 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
   }
 
   return (
-    <div className="relative w-full h-full min-h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#050504] select-none touch-none">
+    <div className="fixed inset-0 w-full h-full overflow-hidden bg-[#050504] select-none touch-none">
       {/* Landscape Orientation Welcome Prompt for Mobile Portrait Visitors */}
       <OrientationPrompt />
 
