@@ -314,11 +314,44 @@ export class CustomAsciiRenderer {
           const r = data[idx * 4];
           const g = data[idx * 4 + 1];
           const b = data[idx * 4 + 2];
-          this.ctx.fillStyle = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+
+          if (skyMask[idx]) {
+            // Sky cells: Dark sky backdrop with luminous point-matrix dots
+            const bgR = Math.round(r * 0.22);
+            const bgG = Math.round(g * 0.22);
+            const bgB = Math.round(b * 0.22);
+            this.ctx.fillStyle = `rgb(${bgR},${bgG},${bgB})`;
+            this.ctx.fillRect(x * this.cellW, y * this.cellH, this.cellW + 0.5, this.cellH + 0.5);
+
+            this.ctx.fillStyle = `rgb(${r},${g},${b})`;
+            this.ctx.fillText(charToDraw, x * this.cellW, y * this.cellH);
+          } else {
+            // Geometry surfaces: Individual shaded background cell derived from material hue + lighting
+            const bgFactor = 0.16 + 0.32 * lum;
+            const bgR = Math.min(255, Math.round(r * bgFactor));
+            const bgG = Math.min(255, Math.round(g * bgFactor));
+            const bgB = Math.min(255, Math.round(b * bgFactor));
+            this.ctx.fillStyle = `rgb(${bgR},${bgG},${bgB})`;
+            this.ctx.fillRect(x * this.cellW, y * this.cellH, this.cellW + 0.5, this.cellH + 0.5);
+
+            // High-contrast foreground glyph with vibrant illumination
+            const fgFactor = 0.65 + 0.55 * lum;
+            const fgBoost = Math.round(28 * lum);
+            const fgR = Math.min(255, Math.round(r * fgFactor + fgBoost));
+            const fgG = Math.min(255, Math.round(g * fgFactor + fgBoost));
+            const fgB = Math.min(255, Math.round(b * fgFactor + fgBoost));
+            this.ctx.fillStyle = `rgb(${fgR},${fgG},${fgB})`;
+            this.ctx.fillText(charToDraw, x * this.cellW, y * this.cellH);
+          }
         } else {
-          this.ctx.fillStyle = "#fff"; // default white for monochrome output
+          // Monochrome fallback
+          const lumByte = Math.round(lum * 255);
+          const bgByte = Math.round(lum * 60);
+          this.ctx.fillStyle = `rgb(${bgByte},${bgByte},${bgByte})`;
+          this.ctx.fillRect(x * this.cellW, y * this.cellH, this.cellW + 0.5, this.cellH + 0.5);
+          this.ctx.fillStyle = `rgb(${lumByte},${lumByte},${lumByte})`;
+          this.ctx.fillText(charToDraw, x * this.cellW, y * this.cellH);
         }
-        this.ctx.fillText(charToDraw, x * this.cellW, y * this.cellH);
       }
     }
 

@@ -75,9 +75,9 @@ export default function HouseMapModal({
               <span>1:1 SCALE</span>
             </div>
             <pre className="font-mono text-[10px] sm:text-[11px] leading-tight text-[#38ef7d] overflow-x-auto select-none py-1">{`   ┌───────────────────────────┐         ┌───────────────────────────┐
-   │ [02] THE LIVING ROOM      │         │ [03] THE STUDY / WORKSPACE│
-   │  · Product & Systems      │         │  · Terminal & Projects    │
-   │  · West Windows & Console │         │  · Bookshelf & Floor Lamp │
+   │ [02] THE LIVING ROOM      │         │ [04] THE ART ROOM / STUDIO│
+   │  · Product & Systems      │         │  · 7 Blue Frames (#769EFD)│
+   │  · West Windows & Console │         │  · Easel & Relocated Wndw │
    └─────────────┬─────────────┘         └─────────────┬─────────────┘
                  │ (Doorway Z: -18)                    │ (Doorway Z: -18)
    ┌─────────────┴─────────────────────────────────────┴─────────────┐
@@ -86,12 +86,12 @@ export default function HouseMapModal({
    └─────────────┬─────────────────────────────────────┬─────────────┘
                  │ (Doorway Z: -7.5)                   │
                  │                       ┌─────────────┴─────────────┐
-                 │                       │ [04] THE ART ROOM         │
-                 │                       │  · 7 Blue Frames (#769EFD)│
-                 │                       │  · Easel, Table, Pinboard │
-                 │                       │  · Walkway East Window    │
-                 │                       └─────────────┬─────────────┘
-                 │ (Aperture Z: 0)                     │ (Sightline)
+                 │                       │ [03] THE STUDY / WORKSPACE│
+                 │                       │  · Terminal & Projects    │
+                 │                       │  · Executive Walnut Desk  │
+                 │                       │  · Bookcase Casework      │
+                 │                       └───────────────────────────┘
+                 │ (Aperture Z: 0)
    ┌─────────────┴─────────────────────────────────────┴─────────────┐
    │ [00] THE GROUNDS APPROACH / EXTERIOR STONE WALKWAY              │
    │  · Steps & Facade · East Stone Garden Path                      │

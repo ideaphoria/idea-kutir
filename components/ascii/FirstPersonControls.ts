@@ -247,42 +247,42 @@ export class FirstPersonNavigator {
       return true;
     }
 
-    // 6. Study Doorway Portal (East wall at X = 2.8, opening Z: -19.5 to -16.5)
-    // Generously bridges Entrance Hall (X <= 2.55) and Study (X >= 2.8) with no gap
-    if (x >= 1.8 && x <= 4.0 && z >= -19.5 + margin && z <= -16.5 - margin) {
-      return true;
-    }
-
-    // 7. Study / Home Office (X: 2.8 to 11.8, Z: -23.0 to -13.0)
-    if (x >= 2.8 + margin && x <= 11.8 - margin && z >= -23.0 + margin && z <= -13.0 - margin) {
-      // Solid collision for desk (desk body at X: 8.0 to 9.0, Z: -19.3 to -16.7)
-      if (x >= 8.0 && x <= 9.0 && z >= -19.3 && z <= -16.7) {
-        return false;
-      }
-      return true;
-    }
-
-    // 8. Art Room Doorway Portal (East wall at X = 2.8, opening Z: -8.8 to -6.2)
-    // Seamless bridge between Entrance Hall (X <= 2.55) and Art Room (X >= 2.8)
+    // 6. Study Doorway Portal (East wall at X = 2.8, opening Z: -8.8 to -6.2)
+    // Seamless bridge between Entrance Hall (X <= 2.55) and Study (X >= 2.8)
     if (x >= 1.8 && x <= 4.0 && z >= -8.8 + margin && z <= -6.2 - margin) {
       return true;
     }
 
-    // 9. Art Room / Personal Studio (X: 2.8 to 11.8, Z: -13.0 to -3.0)
+    // 7. Study / Home Office (Front Room, X: 2.8 to 11.8, Z: -13.0 to -3.0)
     if (x >= 2.8 + margin && x <= 11.8 - margin && z >= -13.0 + margin && z <= -3.0 - margin) {
-      // Solid collision for large artist worktable (X: 5.8 to 8.2, Z: -5.6 to -4.0)
-      if (x >= 5.8 && x <= 8.2 && z >= -5.6 && z <= -4.0) {
-        return false;
-      }
-      // Solid collision for easel base (X: 8.6 to 9.8, Z: -10.5 to -9.3)
-      if (x >= 8.6 && x <= 9.8 && z >= -10.5 && z <= -9.3) {
+      // Solid collision for desk (desk body at X: 8.0 to 9.0, Z: -9.3 to -6.7)
+      if (x >= 8.0 && x <= 9.0 && z >= -9.3 && z <= -6.7) {
         return false;
       }
       return true;
     }
 
-    // 10. Exterior Walkway Alongside House (East side, X: 11.8 to 14.5, Z: -14.0 to 3.0)
-    if (x >= 11.8 + margin && x <= 14.5 - margin && z >= -14.0 && z <= 3.0) {
+    // 8. Art Room Doorway Portal (East wall at X = 2.8, opening Z: -19.5 to -16.5)
+    // Generously bridges Entrance Hall (X <= 2.55) and Art Room (X >= 2.8) with no gap
+    if (x >= 1.8 && x <= 4.0 && z >= -19.5 + margin && z <= -16.5 - margin) {
+      return true;
+    }
+
+    // 9. Art Room / Personal Studio (Rear Room, X: 2.8 to 11.8, Z: -23.0 to -13.0)
+    if (x >= 2.8 + margin && x <= 11.8 - margin && z >= -23.0 + margin && z <= -13.0 - margin) {
+      // Solid collision for large artist worktable (X: 5.8 to 8.2, Z: -17.2 to -15.2)
+      if (x >= 5.8 && x <= 8.2 && z >= -17.2 && z <= -15.2) {
+        return false;
+      }
+      // Solid collision for easel base (X: 8.6 to 9.8, Z: -20.5 to -19.3)
+      if (x >= 8.6 && x <= 9.8 && z >= -20.5 && z <= -19.3) {
+        return false;
+      }
+      return true;
+    }
+
+    // 10. Exterior Walkway Alongside House (East side, X: 11.8 to 14.5, Z: -24.0 to 3.0)
+    if (x >= 11.8 + margin && x <= 14.5 - margin && z >= -24.0 && z <= 3.0) {
       return true;
     }
     // Connection between Driveway / Forecourt and Exterior Side Walkway
@@ -296,8 +296,8 @@ export class FirstPersonNavigator {
   public detectCurrentRoom(x: number, z: number): string {
     if (z >= 0.5 || (x >= 11.8 && z <= 0.5)) return "exterior";
     if (x <= -2.8 && z <= -11.0 && z >= -25.0) return "living_room";
-    if (x >= 2.8 && z <= -13.0 && z >= -23.0) return "study";
-    if (x >= 2.8 && z >= -13.0 && z <= -3.0) return "art_room";
+    if (x >= 2.8 && z >= -13.0 && z <= -3.0) return "study";
+    if (x >= 2.8 && z <= -13.0 && z >= -23.0) return "art_room";
     return "entrance_hall";
   }
 
