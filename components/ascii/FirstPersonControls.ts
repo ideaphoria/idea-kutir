@@ -228,23 +228,107 @@ export class FirstPersonNavigator {
   private isPositionWalkable(x: number, z: number): boolean {
     const margin = 0.35;
 
-    // ─── Multi-Level Staircase & Landing Walkability ───
+    // ─── Multi-Level Staircase & Second-Floor Walkability ───
     if (this.staircaseActive) {
-      // Upper Elevation (Player is climbing or on landing)
+      // Upper Elevation (Player is climbing, on landing, or exploring second floor)
       if (this.playerFloorY >= 1.0) {
-        // Mezzanine Landing at Y = 4.2m
+        // Second-Floor Rooms at Y = 4.20m
         if (this.playerFloorY >= 3.8) {
-          const l = STAIRCASE_CONFIG.landing;
+          // A. Mezzanine Landing (Z: -22.8 to -19.5, X: -2.4 to 2.4)
+          // South edge connects seamlessly to hallway at Z: -19.5
           if (
-            x >= l.minX + margin &&
-            x <= l.maxX - margin &&
-            z >= l.minZ + margin &&
-            z <= l.maxZ - margin
+            x >= -2.4 + margin &&
+            x <= 2.4 - margin &&
+            z >= -22.8 + margin &&
+            z <= -19.5
           ) {
             // Spindle column obstruction
             const dx = x - STAIRCASE_CONFIG.centerX;
             const dz = z - STAIRCASE_CONFIG.centerZ;
             if (Math.hypot(dx, dz) < STAIRCASE_CONFIG.spindleCollisionRadius) {
+              return false;
+            }
+            return true;
+          }
+
+          // B. Second-Floor Central Hallway (X: -2.0 to 2.0, Z: -19.5 to -2.0)
+          if (
+            x >= -2.0 + margin &&
+            x <= 2.0 - margin &&
+            z >= -19.5 &&
+            z <= -2.0 - margin
+          ) {
+            return true;
+          }
+
+          // C. Bedroom 1 Doorway Portal (West wall at X = -2.0, opening Z: -8.0 to -6.0)
+          // Bridges Hallway (X >= -1.65) and Bedroom 1 (X <= -2.0)
+          if (x >= -2.6 && x <= -1.6 && z >= -8.0 + margin && z <= -6.0 - margin) {
+            return true;
+          }
+
+          // D. Bedroom 1 (Balcony Bedroom, X: -9.0 to -2.0, Z: -12.0 to 0.0)
+          if (
+            x >= -9.0 + margin &&
+            x <= -2.0 - margin &&
+            z >= -12.0 + margin &&
+            z <= 0.0 - margin
+          ) {
+            // Solid collision for king bed (X: -8.8 to -5.5, Z: -8.8 to -5.2)
+            if (x >= -8.8 && x <= -5.5 && z >= -8.8 && z <= -5.2) {
+              return false;
+            }
+            // Solid collision for wardrobe/armoire (X: -8.2 to -5.0, Z: -12.0 to -11.0)
+            if (x >= -8.2 && x <= -5.0 && z >= -12.0 && z <= -11.0) {
+              return false;
+            }
+            // Solid collision for dressing table (X: -3.8 to -2.0, Z: -3.8 to -1.5)
+            if (x >= -3.8 && x <= -2.0 && z >= -3.8 && z <= -1.5) {
+              return false;
+            }
+            return true;
+          }
+
+          // E. Balcony Doorway Portal (South wall of Bedroom 1 at Z = 0.0, opening X: -5.8 to -4.2)
+          // Bridges Bedroom 1 (Z <= -0.35) and Balcony (Z >= 0.0)
+          if (x >= -5.8 + margin && x <= -4.2 - margin && z >= -0.6 && z <= 0.6) {
+            return true;
+          }
+
+          // F. Front Balcony (X: -6.8 to -3.2, Z: 0.0 to 1.8)
+          // Solid perimeter railing: cannot go past Z = 1.8 - margin, X = -6.8 + margin, X = -3.2 - margin
+          if (
+            x >= -6.8 + margin &&
+            x <= -3.2 - margin &&
+            z >= 0.0 &&
+            z <= 1.8 - margin
+          ) {
+            return true;
+          }
+
+          // G. Bedroom 2 Doorway Portal (East wall at X = 2.0, opening Z: -8.0 to -6.0)
+          // Bridges Hallway (X <= 1.65) and Bedroom 2 (X >= 2.0)
+          if (x >= 1.6 && x <= 2.6 && z >= -8.0 + margin && z <= -6.0 - margin) {
+            return true;
+          }
+
+          // H. Bedroom 2 (East Bedroom, X: 2.0 to 9.2, Z: -12.0 to -1.0)
+          if (
+            x >= 2.0 + margin &&
+            x <= 9.2 - margin &&
+            z >= -12.0 + margin &&
+            z <= -1.0 - margin
+          ) {
+            // Solid collision for cherry bed (X: 5.5 to 8.8, Z: -8.8 to -5.2)
+            if (x >= 5.5 && x <= 8.8 && z >= -8.8 && z <= -5.2) {
+              return false;
+            }
+            // Solid collision for bookcase casework (X: 3.0 to 8.0, Z: -12.0 to -11.0)
+            if (x >= 3.0 && x <= 8.0 && z >= -12.0 && z <= -11.0) {
+              return false;
+            }
+            // Solid collision for dresser (X: 5.2 to 8.0, Z: -2.2 to -1.0)
+            if (x >= 5.2 && x <= 8.0 && z >= -2.2 && z <= -1.0) {
               return false;
             }
             return true;
@@ -256,7 +340,7 @@ export class FirstPersonNavigator {
           return true;
         }
 
-        // Strictly block walking off elevated treads/landing into open space
+        // Strictly block walking off elevated treads/landing/balcony into open space
         return false;
       }
 
@@ -356,8 +440,22 @@ export class FirstPersonNavigator {
 
   public detectCurrentRoom(x: number, z: number, y?: number): string {
     const eyeY = y ?? this.camera.position.y;
-    if (eyeY >= 3.5 && z <= -19.5 && z >= -23.5 && x >= -3.0 && x <= 3.0) {
-      return "second_floor_landing";
+    if (eyeY >= 3.5) {
+      if (z <= -19.5 && z >= -23.5 && x >= -3.0 && x <= 3.0) {
+        return "second_floor_landing";
+      }
+      if (z >= 0.0 && x >= -6.8 && x <= -3.2) {
+        return "balcony";
+      }
+      if (x <= -2.0 && z <= 0.0 && z >= -12.0) {
+        return "bedroom_1";
+      }
+      if (x >= 2.0 && z <= -1.0 && z >= -12.0) {
+        return "bedroom_2";
+      }
+      if (x >= -2.2 && x <= 2.2 && z >= -19.5 && z <= -2.0) {
+        return "second_floor_hallway";
+      }
     }
     if (z >= 0.5 || (x >= 11.8 && z <= 0.5)) return "exterior";
     if (x <= -2.8 && z <= -11.0 && z >= -25.0) return "living_room";
@@ -500,12 +598,13 @@ export class FirstPersonNavigator {
     let targetFloorY = 0.0;
     if (this.staircaseActive) {
       if (this.playerFloorY >= 3.8) {
-        const l = STAIRCASE_CONFIG.landing;
+        // Second-floor elevation covers landing, hallway, bedroom_1, bedroom_2, and balcony
         if (
-          currentPos.x >= l.minX &&
-          currentPos.x <= l.maxX &&
-          currentPos.z >= l.minZ &&
-          currentPos.z <= l.maxZ
+          (currentPos.x >= -2.4 && currentPos.x <= 2.4 && currentPos.z >= -22.8 && currentPos.z <= -19.5) ||
+          (currentPos.x >= -2.2 && currentPos.x <= 2.2 && currentPos.z >= -19.5 && currentPos.z <= -2.0) ||
+          (currentPos.x >= -9.0 && currentPos.x <= -2.0 && currentPos.z >= -12.0 && currentPos.z <= 0.0) ||
+          (currentPos.x >= -6.8 && currentPos.x <= -3.2 && currentPos.z >= 0.0 && currentPos.z <= 1.8) ||
+          (currentPos.x >= 2.0 && currentPos.x <= 9.2 && currentPos.z >= -12.0 && currentPos.z <= -1.0)
         ) {
           targetFloorY = STAIRCASE_CONFIG.mezzanineFloorY;
         }

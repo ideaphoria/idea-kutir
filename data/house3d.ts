@@ -232,16 +232,140 @@ export const HOUSE_ROOMS_3D: Record<string, Room3D> = {
       minZ: -23.0,
       maxZ: -19.5,
       floorY: 4.2,
-      ceilY: 18.0,
+      ceilY: 9.8,
     },
     doorways: [
       { x: 0, z: -21.2, width: 2.0, height: 4.2, orientation: "z", leadsTo: "entrance_hall" },
+      { x: 0, z: -19.5, width: 2.4, height: 3.2, orientation: "z", leadsTo: "second_floor_hallway" },
     ],
     spawnPoint: {
       x: 0,
       y: 5.9,
       z: -21.8,
       yaw: 0, // Facing South overlooking the Entrance Hall below
+    },
+  },
+
+  second_floor_hallway: {
+    id: "second_floor_hallway",
+    number: "06",
+    name: "Upper Hallway",
+    subtitle: "Central Corridor & Bedroom Passage",
+    discipline: "Domestic Circulation & Spatial Axis",
+    description: "An elongated upper gallery corridor connecting the staircase landing to the two private bedrooms. Warm wall sconces cast pools of amber light across the dark oak floorboards and exposed ceiling beams.",
+    atmosphericNote: "Quiet footing, soft sconce glows, rhythmic shadows cast by exposed overhead beams.",
+    level: "second_floor",
+    projectIds: [],
+    objectIds: [],
+    bounds: {
+      minX: -2.0,
+      maxX: 2.0,
+      minZ: -19.5,
+      maxZ: -2.0,
+      floorY: 4.2,
+      ceilY: 8.4,
+    },
+    doorways: [
+      { x: 0, z: -19.5, width: 2.4, height: 3.2, orientation: "z", leadsTo: "second_floor_landing" },
+      { x: -2.0, z: -7.0, width: 2.0, height: 3.0, orientation: "x", leadsTo: "bedroom_1" },
+      { x: 2.0, z: -7.0, width: 2.0, height: 3.0, orientation: "x", leadsTo: "bedroom_2" },
+    ],
+    spawnPoint: {
+      x: 0,
+      y: 5.9,
+      z: -14.0,
+      yaw: 0, // Facing South towards bedrooms
+    },
+  },
+
+  bedroom_1: {
+    id: "bedroom_1",
+    number: "07",
+    name: "Bedroom 1",
+    subtitle: "Balcony Chamber & Private Quarters",
+    discipline: "Private Quarters & Exterior Overlook",
+    description: "The primary upper chamber situated above the front porch. Features an expansive king bed with walnut headboard, a carved armoire, nightstands with ceramic lamps, and French doors leading directly out to the front-facing balcony.",
+    atmosphericNote: "Warm daylight filtering through French doors, linen bedding, quiet private sanctuary.",
+    level: "second_floor",
+    projectIds: [],
+    objectIds: [],
+    bounds: {
+      minX: -9.0,
+      maxX: -2.0,
+      minZ: -12.0,
+      maxZ: 0.0,
+      floorY: 4.2,
+      ceilY: 8.4,
+    },
+    doorways: [
+      { x: -2.0, z: -7.0, width: 2.0, height: 3.0, orientation: "x", leadsTo: "second_floor_hallway" },
+      { x: -5.0, z: 0.0, width: 1.6, height: 2.8, orientation: "z", leadsTo: "balcony" },
+    ],
+    spawnPoint: {
+      x: -4.5,
+      y: 5.9,
+      z: -6.0,
+      yaw: Math.PI, // Facing South towards the front balcony
+    },
+  },
+
+  balcony: {
+    id: "balcony",
+    number: "07B",
+    name: "The Front Balcony",
+    subtitle: "Forecourt Overlook & Porch Terrace",
+    discipline: "Architectural Vantage & Grounds Surveillance",
+    description: "A timber-decked exterior balcony projecting from the front facade of Bedroom 1. Turned wooden balustrades frame a panoramic view looking directly down upon the stone walkway, entrance steps, and arrival grounds.",
+    atmosphericNote: "Fresh night air, elevated vantage point directly above the entrance, viewing the walkway below.",
+    level: "second_floor",
+    projectIds: [],
+    objectIds: [],
+    bounds: {
+      minX: -6.8,
+      maxX: -3.2,
+      minZ: 0.0,
+      maxZ: 1.8,
+      floorY: 4.2,
+      ceilY: 8.4,
+    },
+    doorways: [
+      { x: -5.0, z: 0.0, width: 1.6, height: 2.8, orientation: "z", leadsTo: "bedroom_1" },
+    ],
+    spawnPoint: {
+      x: -5.0,
+      y: 5.9,
+      z: 0.9,
+      yaw: 0, // Facing South down the walkway
+    },
+  },
+
+  bedroom_2: {
+    id: "bedroom_2",
+    number: "08",
+    name: "Bedroom 2",
+    subtitle: "East Chamber & Contemplative Room",
+    discipline: "Private Quarters & Solitary Reflection",
+    description: "A serene, bookish bedroom chamber on the east wing. Features a solid cherry bed frame with navy textiles, built-in library casework, a reading armchair with footstool, a wide dresser, and a window overlooking the garden.",
+    atmosphericNote: "Quiet paper rustle, deep indigo linens, low amber lamplight cast across casework and drafting tools.",
+    level: "second_floor",
+    projectIds: [],
+    objectIds: [],
+    bounds: {
+      minX: 2.0,
+      maxX: 9.2,
+      minZ: -12.0,
+      maxZ: -1.0,
+      floorY: 4.2,
+      ceilY: 8.4,
+    },
+    doorways: [
+      { x: 2.0, z: -7.0, width: 2.0, height: 3.0, orientation: "x", leadsTo: "second_floor_hallway" },
+    ],
+    spawnPoint: {
+      x: 5.0,
+      y: 5.9,
+      z: -6.0,
+      yaw: -Math.PI / 2, // Facing East into room
     },
   },
 };

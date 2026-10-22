@@ -244,6 +244,42 @@ export default function AsciiHouse() {
     return false;
   });
   const [pendingStairsDialogue, setPendingStairsDialogue] = useState<boolean>(false);
+
+  // Master of the House Bedroom Privacy Tracking
+  const [hasEnteredBedroom1, setHasEnteredBedroom1] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return sessionStorage.getItem("house_entered_bedroom_1") === "true";
+      } catch {}
+    }
+    return false;
+  });
+  const [hasEnteredBedroom2, setHasEnteredBedroom2] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return sessionStorage.getItem("house_entered_bedroom_2") === "true";
+      } catch {}
+    }
+    return false;
+  });
+
+  // Interactive Half-Open Bedroom Doors References & Angles
+  const doorsRef = useRef<{
+    door1Pivot: THREE.Group | null;
+    door2Pivot: THREE.Group | null;
+    door1Open: boolean;
+    door2Open: boolean;
+    door1Angle: number;
+    door2Angle: number;
+  }>({
+    door1Pivot: null,
+    door2Pivot: null,
+    door1Open: false,
+    door2Open: false,
+    door1Angle: -0.61, // ~35 deg open into Bedroom 1
+    door2Angle: 0.61,  // ~35 deg open into Bedroom 2
+  });
+
   const prevRoomIdRef = useRef<string>("exterior");
   const manifestationRef = useRef<{
     isManifesting: boolean;
@@ -338,6 +374,91 @@ export default function AsciiHouse() {
       },
     });
   }, []);
+
+  // Master of the House Bedroom Privacy Dialogue
+  const triggerPrivacyDialogue = useCallback((room: "bedroom_1" | "bedroom_2") => {
+    setDialogueAppearanceCount((prev) => {
+      const next = prev + 1;
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem("house_dialogue_appearance_count", next.toString());
+        } catch {}
+      }
+      return next;
+    });
+
+    const isFirstTime = room === "bedroom_1" || !hasEnteredBedroom1;
+    const text = isFirstTime
+      ? "Oh, we're opening doors now, are we?\n\nBedrooms are private places. Or have we forgotten how doors work?\n\nGo on, then. Since you've already decided that privacy is merely a suggestion."
+      : "Another one? You really have no shame, do you.\n\nI suppose once you've invaded one private sanctuary, the second is just routine.\n\nDo make yourself at home, then. Clearly my permission was never part of the equation.";
+
+    const confirmText = isFirstTime ? "I was only looking" : "Just exploring";
+
+    setHostDialogueConfig({
+      lines: [
+        {
+          speaker: "Master of the House",
+          text,
+        },
+      ],
+      title: "Master of the House",
+      confirmButtonText: confirmText,
+      showCancelButton: false,
+      hideCloseButton: true,
+      instantText: false,
+      onProceed: () => {
+        setHostDialogueConfig(null);
+      },
+    });
+  }, [hasEnteredBedroom1]);
+
+  // Trigger Privacy Dialogue upon crossing into bedroom threshold
+  useEffect(() => {
+    const curr = telemetry.currentRoomId;
+    if (curr === "bedroom_1" && !hasEnteredBedroom1) {
+      setHasEnteredBedroom1(true);
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem("house_entered_bedroom_1", "true");
+        } catch {}
+      }
+      const hasOpenModal =
+        isProfileOpen ||
+        isMapOpen ||
+        isInventoryOpen ||
+        isProjectDirectoryOpen ||
+        !!inspectedObject;
+      if (!hasOpenModal) {
+        triggerPrivacyDialogue("bedroom_1");
+      }
+    } else if (curr === "bedroom_2" && !hasEnteredBedroom2) {
+      setHasEnteredBedroom2(true);
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem("house_entered_bedroom_2", "true");
+        } catch {}
+      }
+      const hasOpenModal =
+        isProfileOpen ||
+        isMapOpen ||
+        isInventoryOpen ||
+        isProjectDirectoryOpen ||
+        !!inspectedObject;
+      if (!hasOpenModal) {
+        triggerPrivacyDialogue("bedroom_2");
+      }
+    }
+  }, [
+    telemetry.currentRoomId,
+    hasEnteredBedroom1,
+    hasEnteredBedroom2,
+    isProfileOpen,
+    isMapOpen,
+    isInventoryOpen,
+    isProjectDirectoryOpen,
+    inspectedObject,
+    triggerPrivacyDialogue,
+  ]);
 
   const triggerStaircaseManifestation = useCallback(() => {
     setStaircaseState("manifesting");
@@ -516,6 +637,20 @@ export default function AsciiHouse() {
 
   const handleInteract = useCallback(() => {
     if (introStage !== "playing" || !!hostDialogueConfig) return;
+
+    // Check interactive doors on second floor
+    if (telemetry.y >= 5.0) {
+      const dist1 = Math.hypot(telemetry.x - (-2.0), telemetry.z - (-7.0));
+      if (dist1 < 2.5 && !doorsRef.current.door1Open) {
+        doorsRef.current.door1Open = true;
+        return;
+      }
+      const dist2 = Math.hypot(telemetry.x - 2.0, telemetry.z - (-7.0));
+      if (dist2 < 2.5 && !doorsRef.current.door2Open) {
+        doorsRef.current.door2Open = true;
+        return;
+      }
+    }
 
     const target = hoveredObjectRef.current;
     if (!target) return;
@@ -973,6 +1108,21 @@ export default function AsciiHouse() {
     } else if (initialRoom === "sofa") {
       camera.position.set(-7.5, 1.6, -18.0);
       camera.lookAt(-11.5, 1.2, -18.0);
+    } else if (initialRoom === "second_floor_landing") {
+      camera.position.set(0, 5.9, -21.8);
+      camera.lookAt(0, 5.9, -15.0);
+    } else if (initialRoom === "second_floor_hallway") {
+      camera.position.set(0, 5.9, -14.0);
+      camera.lookAt(0, 5.9, -5.0);
+    } else if (initialRoom === "bedroom_1") {
+      camera.position.set(-4.5, 5.9, -6.0);
+      camera.lookAt(-4.5, 5.9, 0.0);
+    } else if (initialRoom === "balcony") {
+      camera.position.set(-5.0, 5.9, 0.9);
+      camera.lookAt(-5.0, 5.9, 10.0);
+    } else if (initialRoom === "bedroom_2") {
+      camera.position.set(5.0, 5.9, -6.0);
+      camera.lookAt(8.5, 5.9, -6.0);
     } else {
       camera.position.set(0, 1.7, 13.0); // Outside facing facade
     }
@@ -1095,6 +1245,20 @@ export default function AsciiHouse() {
     const drivewayMaterial = new THREE.MeshLambertMaterial({ color: 0x756f64 }); // Paved concrete driveway
     const curbMaterial = new THREE.MeshLambertMaterial({ color: 0x48443d }); // Driveway perimeter curb
     const porchTrimMaterial = new THREE.MeshLambertMaterial({ color: 0xd2cdc2 }); // Dividing floor cornice trim
+
+    // Second-Floor architectural & furnishing materials
+    const secondWallMat = new THREE.MeshLambertMaterial({ color: 0x8a8479 }); // Warm upper plaster/siding
+    const secondCeilingMat = new THREE.MeshLambertMaterial({ color: 0x2e2722 }); // Dark ceiling plane
+    const balconyDeckMaterial = new THREE.MeshLambertMaterial({ color: 0x3d352b }); // Weathered exterior wood decking
+    const balconyRailMaterial = new THREE.MeshLambertMaterial({ color: 0xe0dbd1 }); // White turned timber balusters
+    const bed1WoodMat = new THREE.MeshLambertMaterial({ color: 0x2a1e14 }); // Carved dark walnut
+    const bed1LinenMat = new THREE.MeshLambertMaterial({ color: 0xdcd6c8 }); // Cream linen duvet
+    const bed1AccentMat = new THREE.MeshLambertMaterial({ color: 0x785a44 }); // Terracotta throw quilt
+    const bed1RugMat = new THREE.MeshLambertMaterial({ color: 0x847665 }); // Woven area rug
+    const bed2WoodMat = new THREE.MeshLambertMaterial({ color: 0x482618 }); // Cherry wood casework
+    const bed2LinenMat = new THREE.MeshLambertMaterial({ color: 0x23324c }); // Deep indigo linen
+    const bed2RugMat = new THREE.MeshLambertMaterial({ color: 0x2b3846 }); // Slate/navy geometric rug
+    const armchairWoolMat = new THREE.MeshLambertMaterial({ color: 0x2c2b29 }); // Charcoal wool upholstery
 
     // Procedural perspective plank texture for floor
     const createFloorPlankTexture = () => {
@@ -1395,26 +1559,106 @@ export default function AsciiHouse() {
     // 6. Horizontal Porch Roofline / Dividing Cornice Trim (between floors)
     addBox(18.2, 0.28, 0.7, 0.0, 4.0, 0.35, porchTrimMaterial);
 
-    // 7. Upper Floor Facade
-    // Left Upper Gabled Wing (Triangle pitched roof + 2 shuttered windows)
-    addBox(9.2, 1.8, 0.6, -4.1, 4.9, 0.0, sidingMaterial);
-    addTriangularGable(-8.6, 4.0, 0.4, 4.0, -4.1, 7.3, 0.0, 0.6, sidingMaterial);
+    // 7. Upper Storey Exterior Architecture (Matching Two-Storey House Scale & house_ext.jpg)
+    // Floor level at Y = 4.20m, Upper wall height = 4.20m, Eaves at Y = 8.40m, Roof Ridge at Y = 10.50m-11.20m
 
-    // Sloping Gable Roof Eaves & Fascia
-    const leftEave = addBox(5.6, 0.22, 0.8, -6.35, 5.65, 0.1, roofMaterial);
-    leftEave.rotation.z = Math.atan2(3.3, 4.5);
-    const rightEave = addBox(5.6, 0.22, 0.8, -1.85, 5.65, 0.1, roofMaterial);
-    rightEave.rotation.z = -Math.atan2(3.3, 4.5);
-    addBox(0.4, 0.25, 0.85, -4.1, 7.38, 0.1, roofMaterial); // Ridge cap
+    // ─── UPPER SOUTH FACADE (Z = 0.0) ───
+    // West Wing Facade (Bedroom 1, X: -9.0 to -2.0, Y: 4.0 to 8.4m)
+    addBox(3.2, 4.4, 0.6, -7.4, 6.2, 0.0, sidingMaterial); // West of balcony door
+    addBox(2.2, 4.4, 0.6, -3.1, 6.2, 0.0, sidingMaterial); // East of balcony door
+    addBox(1.6, 1.4, 0.6, -5.0, 7.7, 0.0, sidingMaterial); // Header above balcony door
 
-    // Twin Upper Shuttered Windows in Gable
-    addShutteredWindow(-6.1, 5.15, 0.32, 1.45, 1.8, true); // Left window
-    addShutteredWindow(-2.1, 5.15, 0.32, 1.45, 1.8, true); // Right window
+    // Central Hallway Facade (X: -2.0 to 2.0, Y: 4.0 to 8.4m)
+    addBox(4.0, 4.4, 0.6, 0.0, 6.2, 0.0, sidingMaterial);
+    addShutteredWindow(0.0, 6.2, 0.32, 1.4, 1.8, false); // Center hallway multipane window
 
-    // Right Upper Floor (Flat/hip roofline + single smaller window)
-    addBox(8.4, 1.8, 0.6, 4.7, 4.9, 0.0, sidingMaterial);
-    addBox(8.6, 0.25, 0.8, 4.7, 5.8, 0.25, roofMaterial); // Roofline trim
-    addShutteredWindow(4.2, 4.95, 0.32, 1.15, 1.35, false); // Upper right dormer window
+    // East Wing Facade (Bedroom 2, X: 2.0 to 9.2, Y: 4.0 to 8.4m)
+    addBox(7.2, 4.4, 0.6, 5.6, 6.2, 0.0, sidingMaterial);
+    addShutteredWindow(5.6, 6.2, 0.32, 2.0, 1.8, true); // Upper East wing shuttered windows
+
+    // ─── BEDROOM 1 FRONT-FACING BALCONY (X: -6.8 to -3.2, Z: 0.0 to 1.8, Y = 4.15m) ───
+    // Directly overlooking the front approach walkway (Z: 0 to 14) and steps below
+    addBox(3.6, 0.16, 1.8, -5.0, 4.12, 0.9, balconyDeckMaterial); // Balcony timber floor
+    // Decorative support brackets underneath balcony resting on portico cornice
+    addBox(0.24, 0.45, 1.7, -6.6, 3.80, 0.85, porchTrimMaterial);
+    addBox(0.24, 0.45, 1.7, -3.4, 3.80, 0.85, porchTrimMaterial);
+    addBox(0.24, 0.45, 1.7, -5.0, 3.80, 0.85, porchTrimMaterial);
+
+    // Turned wooden balustrade perimeter (1.05m high, top rail at Y = 5.20m)
+    // South rail (Z = 1.8, overlooking walkway)
+    addBox(3.6, 0.08, 0.08, -5.0, 5.20, 1.8, balconyRailMaterial);
+    addBox(3.6, 0.06, 0.06, -5.0, 4.26, 1.8, balconyRailMaterial);
+    for (let bx = -6.7; bx <= -3.3; bx += 0.25) {
+      addBox(0.06, 0.88, 0.06, bx, 4.73, 1.8, balconyRailMaterial);
+    }
+    // West rail (X = -6.8)
+    addBox(0.08, 0.08, 1.8, -6.8, 5.20, 0.9, balconyRailMaterial);
+    addBox(0.06, 0.06, 1.8, -6.8, 4.26, 0.9, balconyRailMaterial);
+    for (let bz = 0.15; bz <= 1.65; bz += 0.25) {
+      addBox(0.06, 0.88, 0.06, -6.8, 4.73, bz, balconyRailMaterial);
+    }
+    // East rail (X = -3.2)
+    addBox(0.08, 0.08, 1.8, -3.2, 5.20, 0.9, balconyRailMaterial);
+    addBox(0.06, 0.06, 1.8, -3.2, 4.26, 0.9, balconyRailMaterial);
+    for (let bz = 0.15; bz <= 1.65; bz += 0.25) {
+      addBox(0.06, 0.88, 0.06, -3.2, 4.73, bz, balconyRailMaterial);
+    }
+    // Corner posts
+    addBox(0.14, 1.15, 0.14, -6.8, 4.75, 1.8, balconyRailMaterial);
+    addBox(0.14, 1.15, 0.14, -3.2, 4.75, 1.8, balconyRailMaterial);
+    addBox(0.14, 1.15, 0.14, -6.8, 4.75, 0.0, balconyRailMaterial);
+    addBox(0.14, 1.15, 0.14, -3.2, 4.75, 0.0, balconyRailMaterial);
+
+    // French Doors casing at Z = 0.0 (X: -5.8 to -4.2, Y: 4.2 to 7.0m)
+    addBox(0.14, 2.9, 0.16, -5.8, 5.65, 0.08, windowFrameMaterial); // Left post
+    addBox(0.14, 2.9, 0.16, -4.2, 5.65, 0.08, windowFrameMaterial); // Right post
+    addBox(1.74, 0.14, 0.16, -5.0, 7.10, 0.08, windowFrameMaterial); // Lintel
+    // Glass French door leaves (swung slightly ajar)
+    addBox(0.72, 2.7, 0.04, -5.45, 5.55, 0.15, windowGlassMaterial);
+    addBox(0.72, 2.7, 0.04, -4.55, 5.55, 0.15, windowGlassMaterial);
+
+    // ─── UPPER SIDE & REAR EXTERIOR WALLS (Y: 4.20m to 8.40m) ───
+    // West Upper Exterior Walls
+    addBox(0.6, 4.2, 12.0, -9.0, 6.30, -6.0, sidingMaterial); // Bedroom 1 West wall (Z: 0 to -12)
+    addBox(8.5, 2.8, 0.6, -13.25, 7.00, -12.0, sidingMaterial); // Step-back above living room (Z = -12)
+    addBox(0.6, 2.8, 13.0, -17.5, 7.00, -18.5, sidingMaterial); // Living room upper West wall (Z: -12 to -25)
+    // East Upper Exterior Walls
+    addBox(0.6, 4.2, 12.0, 9.2, 6.30, -6.0, sidingMaterial); // Bedroom 2 East wall (Z: 0 to -12)
+    addShutteredWindow(9.2, 6.2, -6.5, 2.0, 1.8, true); // East garden window
+    addBox(2.6, 4.2, 0.6, 10.5, 6.30, -12.0, sidingMaterial); // Step-back to Art Room (Z = -12)
+    addBox(0.6, 4.2, 13.0, 11.8, 6.30, -18.5, sidingMaterial); // Art Room upper East wall (Z: -12 to -25)
+    // North Rear Exterior Walls
+    addBox(14.7, 2.8, 0.6, -10.15, 7.00, -25.0, sidingMaterial); // Living Room rear (Z = -25)
+    addBox(9.0, 4.2, 0.6, 7.3, 6.30, -23.0, sidingMaterial); // Art Room rear (Z = -23)
+    addBox(0.6, 4.2, 2.0, -2.8, 6.30, -24.0, sidingMaterial); // Jog connecting rear walls
+
+    // ─── CONTINUOUS ARCHITECTURAL ROOF STRUCTURE ───
+    // Fully conceals the staircase shaft and stairs beneath continuous shingles (Ridge: 10.5m-11.2m, Eaves: 8.4m)
+    // Front Triangular Gable over West Wing (X: -9.0 to 0.0, Peak at X = -4.5, Y = 11.20m, Z = 0.0)
+    addTriangularGable(-9.0, 8.40, 0.0, 8.40, -4.5, 11.20, 0.0, 0.6, sidingMaterial);
+    // Rear Triangular Gable (Z = -25.0, Peak at X = -10.15, Y = 11.20m)
+    addTriangularGable(-17.5, 8.40, -2.8, 8.40, -10.15, 11.20, -25.0, 0.6, sidingMaterial);
+
+    // Continuous Pitched Roof Slabs spanning full depth Z: 0.0 to -25.0
+    // West Gable Slopes (X: -9.0 to 0.0, Z: 0.0 to -25.0)
+    const roofSlopeW = addBox(5.4, 0.24, 25.4, -6.8, 9.80, -12.5, roofMaterial);
+    roofSlopeW.rotation.z = Math.atan2(2.8, 4.5);
+    const roofSlopeE = addBox(5.4, 0.24, 25.4, -2.2, 9.80, -12.5, roofMaterial);
+    roofSlopeE.rotation.z = -Math.atan2(2.8, 4.5);
+    // West Ridge Cap running full depth at Y = 11.20m
+    addBox(0.45, 0.30, 25.6, -4.5, 11.25, -12.5, roofMaterial);
+
+    // East Wing Roof Slabs (X: 0.0 to 12.0, Z: 0.0 to -24.0, sloping to eaves at Y = 8.4m)
+    const eastRoofSlope = addBox(12.5, 0.24, 24.5, 6.0, 9.45, -12.0, roofMaterial);
+    eastRoofSlope.rotation.z = -Math.atan2(2.1, 12.0);
+    // East Roof Ridge Cap at Y = 10.50m
+    addBox(0.45, 0.30, 24.5, 0.0, 10.55, -12.0, roofMaterial);
+
+    // Overhanging Eaves Fascia along full perimeters at Y = 8.40m
+    addBox(18.5, 0.25, 0.8, 0.0, 8.40, 0.25, roofMaterial); // South front eaves
+    addBox(0.8, 0.25, 25.6, -9.2, 8.40, -12.5, roofMaterial); // West front eaves
+    addBox(0.8, 0.25, 25.6, 12.0, 8.40, -12.5, roofMaterial); // East eaves
+    addBox(18.5, 0.25, 0.8, 0.0, 8.40, -25.25, roofMaterial); // North rear eaves
 
     // ─── B. ENTRANCE HALL (Z: 0.0 to -21.0, X: -2.8 to +2.8, Height 4.2m) ───
     // Hall Floor (dark planks elevated safely above ground)
@@ -1434,31 +1678,31 @@ export default function AsciiHouse() {
     // Removable North End Wall at Z = -21.0 (dissolves to reveal stairwell)
     const northEndWallMesh = addBox(5.6, 4.2, 0.6, 0.0, 2.1, -21.0, darkWallMaterial);
 
-    // ─── STAIRWELL VERTICAL SHAFT (X: -2.8 to 2.8, Z: -19.5 to -23.0, Y: 0.0 to 18.0m) ───
+    // ─── STAIRWELL VERTICAL SHAFT (Capped at Y = 9.80m safely inside roof volume) ───
     const shaftWallMat = new THREE.MeshLambertMaterial({ color: 0x16120e });
     const shaftCapMat = new THREE.MeshLambertMaterial({ color: 0x050403 });
-    // North Back Wall of Stairwell (Z = -23.0, 18.0m tall, flush with Art Room North wall)
-    addBox(5.6, 18.0, 0.6, 0.0, 9.0, -23.0, shaftWallMat);
-    // West Upper Shaft Wall (X = -2.8, rising from Y = 5.6 to 18.0m above Living Room ceiling)
-    addBox(0.6, 12.4, 3.5, -2.8, 11.8, -21.25, shaftWallMat);
-    // East Upper Shaft Wall (X = 2.8, rising from Y = 4.2 to 18.0m above Art Room ceiling)
-    addBox(0.6, 13.8, 3.5, 2.8, 11.1, -21.25, shaftWallMat);
-    // Shaft Ceiling Cap at Y = 18.0m (pitch black abyss)
-    addBox(5.6, 0.6, 3.5, 0.0, 18.0, -21.25, shaftCapMat);
+    // North Back Wall of Stairwell (Z = -23.0, 9.8m tall, flush with Art Room North wall)
+    addBox(5.6, 9.8, 0.6, 0.0, 4.9, -23.0, shaftWallMat);
+    // West Upper Shaft Wall (X = -2.8, rising from Y = 5.6 to 9.8m above Living Room ceiling)
+    addBox(0.6, 4.2, 3.5, -2.8, 7.7, -21.25, shaftWallMat);
+    // East Upper Shaft Wall (X = 2.8, rising from Y = 4.2 to 9.8m above Art Room ceiling)
+    addBox(0.6, 5.6, 3.5, 2.8, 7.0, -21.25, shaftWallMat);
+    // Shaft Ceiling Cap at Y = 9.80m (pitch black abyss contained completely inside the roof structure)
+    addBox(5.6, 0.4, 3.5, 0.0, 9.8, -21.25, shaftCapMat);
 
     // ─── 3D IMPOSSIBLE SPIRAL STAIRCASE & MEZZANINE LANDING ───
     const staircaseGroup = new THREE.Group();
 
-    // Central Spindle Post (r = 0.22, height = 18.0m, center = 0.0, -21.2)
+    // Central Spindle Post (r = 0.22, height = 9.80m, center = 0.0, -21.2)
     const spindleGeo = new THREE.CylinderGeometry(
       STAIRCASE_CONFIG.spindleRadius,
       STAIRCASE_CONFIG.spindleRadius,
-      18.0,
+      9.80,
       16
     );
     const spindleMat = new THREE.MeshLambertMaterial({ color: 0x1c1510 }); // Dark polished walnut
     const spindleMesh = new THREE.Mesh(spindleGeo, spindleMat);
-    spindleMesh.position.set(STAIRCASE_CONFIG.centerX, 9.0, STAIRCASE_CONFIG.centerZ);
+    spindleMesh.position.set(STAIRCASE_CONFIG.centerX, 4.90, STAIRCASE_CONFIG.centerZ);
     staircaseGroup.add(spindleMesh);
 
     // Tread & Riser Materials
@@ -1520,27 +1764,34 @@ export default function AsciiHouse() {
     landingFloor.position.set(0.0, 4.125, -21.5);
     staircaseGroup.add(landingFloor);
 
-    // Landing Perimeter Balustrade along South edge (Z = -20.2)
-    // Left segment: X = -2.4 to -0.4
-    const balustradeRailGeo1 = new THREE.BoxGeometry(2.0, 0.08, 0.08);
+    // Landing Perimeter Balustrade along South edge (opening into Hallway Z: -19.5)
+    // Left segment: X = -2.4 to -1.0
+    const balustradeRailGeo1 = new THREE.BoxGeometry(1.4, 0.08, 0.08);
     const railSouthLeft = new THREE.Mesh(balustradeRailGeo1, handrailMat);
-    railSouthLeft.position.set(-1.4, 5.12, -20.2);
+    railSouthLeft.position.set(-1.7, 5.12, -20.2);
     staircaseGroup.add(railSouthLeft);
-    for (let sx = -2.3; sx <= -0.5; sx += 0.25) {
+    for (let sx = -2.3; sx <= -1.1; sx += 0.25) {
       const b = new THREE.Mesh(balusterGeo, balusterMat);
       b.position.set(sx, 4.65, -20.2);
       staircaseGroup.add(b);
     }
+    const newelPostGeo = new THREE.BoxGeometry(0.12, 1.10, 0.12);
+    const newelL = new THREE.Mesh(newelPostGeo, handrailMat);
+    newelL.position.set(-1.0, 4.70, -20.2);
+    staircaseGroup.add(newelL);
 
-    // Right segment: X = 0.4 to 2.4
+    // Right segment: X = 1.0 to 2.4
     const railSouthRight = new THREE.Mesh(balustradeRailGeo1, handrailMat);
-    railSouthRight.position.set(1.4, 5.12, -20.2);
+    railSouthRight.position.set(1.7, 5.12, -20.2);
     staircaseGroup.add(railSouthRight);
-    for (let sx = 0.5; sx <= 2.3; sx += 0.25) {
+    for (let sx = 1.1; sx <= 2.3; sx += 0.25) {
       const b = new THREE.Mesh(balusterGeo, balusterMat);
       b.position.set(sx, 4.65, -20.2);
       staircaseGroup.add(b);
     }
+    const newelR = new THREE.Mesh(newelPostGeo, handrailMat);
+    newelR.position.set(1.0, 4.70, -20.2);
+    staircaseGroup.add(newelR);
 
     // West and East landing wall baseboards
     const landingBaseMat = new THREE.MeshLambertMaterial({ color: 0x1f1610 });
@@ -2962,6 +3213,242 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
       addBox(0.02, 0.02, 0.025, pn.x, pn.y + pn.h / 2 - 0.03, -13.25, new THREE.MeshLambertMaterial({ color: 0xcc2222 }));
     });
 
+    // ─────────────────────────────────────────────────────────────
+    // SECOND FLOOR INTERIOR ARCHITECTURE: CENTRAL HALLWAY & BEDROOMS
+    // ─────────────────────────────────────────────────────────────
+    // Floor elevation: Y = 4.20m, Ceiling: Y = 8.40m (Wall height = 4.20m)
+
+    // 1. SECOND-FLOOR CENTRAL HALLWAY (X: -2.0 to 2.0, Z: -19.5 to -2.0)
+    // Dark oak plank flooring spanning landing connection (Z: -19.5) to front window (Z: -2.0)
+    addBox(4.0, 0.18, 17.5, 0.0, 4.11, -10.75, floorMaterial);
+    // Upper ceiling plane
+    addBox(4.0, 0.18, 17.5, 0.0, 8.40, -10.75, secondCeilingMat);
+
+    // Structural timber cross-beams across the hallway ceiling (Y = 8.26m)
+    [-17.0, -14.0, -11.0, -8.0, -5.0].forEach((bz) => {
+      addBox(4.0, 0.28, 0.24, 0.0, 8.26, bz, beamMaterial);
+    });
+
+    // West Hallway Dividing Wall (shared with Bedroom 1 at X = -2.0, doorway at Z: -8.0 to -6.0)
+    addBox(0.24, 4.20, 11.5, -2.0, 6.30, -13.75, secondWallMat); // North segment (Z: -19.5 to -8.0)
+    addBox(0.24, 1.20, 2.0, -2.0, 7.80, -7.0, frameMaterial);     // Lintel header above Door 1 (Z: -8.0 to -6.0)
+    addBox(0.24, 4.20, 4.0, -2.0, 6.30, -4.0, secondWallMat);   // South segment (Z: -6.0 to -2.0)
+
+    // East Hallway Dividing Wall (shared with Bedroom 2 at X = 2.0, doorway at Z: -8.0 to -6.0)
+    addBox(0.24, 4.20, 11.5, 2.0, 6.30, -13.75, secondWallMat);  // North segment (Z: -19.5 to -8.0)
+    addBox(0.24, 1.20, 2.0, 2.0, 7.80, -7.0, frameMaterial);      // Lintel header above Door 2 (Z: -8.0 to -6.0)
+    addBox(0.24, 4.20, 4.0, 2.0, 6.30, -4.0, secondWallMat);    // South segment (Z: -6.0 to -2.0)
+
+    // South End Wall of Hallway (at Z = -2.0, X: -2.0 to 2.0)
+    addBox(4.0, 4.20, 0.24, 0.0, 6.30, -2.0, secondWallMat);
+    // Interior window frame casing & glass overlooking front facade
+    addBox(1.5, 1.9, 0.12, 0.0, 6.20, -1.94, windowFrameMaterial);
+    addBox(1.3, 1.7, 0.04, 0.0, 6.20, -1.90, windowGlassMaterial);
+
+    // Warm Wall Sconce Lights along Hallway (amber point lights casting pools of light)
+    [-15.0, -10.0, -5.0].forEach((sz) => {
+      // West sconce fixture
+      addBox(0.08, 0.18, 0.14, -1.86, 6.20, sz, brassDarkMaterial);
+      addBox(0.12, 0.08, 0.08, -1.76, 6.20, sz, lampGlowMaterial);
+      // East sconce fixture
+      addBox(0.08, 0.18, 0.14, 1.86, 6.20, sz, brassDarkMaterial);
+      addBox(0.12, 0.08, 0.08, 1.76, 6.20, sz, lampGlowMaterial);
+
+      const sconceLight = new THREE.PointLight(0xffbe76, 0.75, 7.0);
+      sconceLight.position.set(0.0, 6.20, sz);
+      houseGroup.add(sconceLight);
+    });
+
+    // ─── INTERACTIVE HALF-OPEN BEDROOM DOORS ───
+    // Door 1 Frame Casing (Bedroom 1 doorway at X = -2.0, Z: -8.0 to -6.0)
+    addBox(0.36, 3.0, 0.16, -2.0, 5.70, -8.0, frameMaterial); // South jamb post (hinge side)
+    addBox(0.36, 3.0, 0.16, -2.0, 5.70, -6.0, frameMaterial); // North jamb post
+    addBox(0.36, 0.18, 2.16, -2.0, 7.15, -7.0, frameMaterial); // Top lintel casing
+
+    // Door 1 Pivot Group (Hinge at X = -2.0, Y = 4.20, Z = -8.0)
+    const door1Pivot = new THREE.Group();
+    door1Pivot.position.set(-2.0, 4.20, -8.0);
+    // Door Leaf panel inside pivot: 1.2m wide, 2.8m high, 0.06m thick
+    const door1Mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.06, 2.80, 1.20),
+      bed1WoodMat
+    );
+    door1Mesh.position.set(0.0, 1.40, 0.60);
+    door1Pivot.add(door1Mesh);
+    const d1Handle = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.16, 0.05), brassLightMaterial);
+    d1Handle.position.set(0.0, 1.35, 1.10);
+    door1Pivot.add(d1Handle);
+    // Initial half-open angle: -35 deg (-0.61 rad) swinging into Bedroom 1
+    door1Pivot.rotation.y = -0.61;
+    houseGroup.add(door1Pivot);
+    doorsRef.current.door1Pivot = door1Pivot;
+
+    // Door 2 Frame Casing (Bedroom 2 doorway at X = 2.0, Z: -8.0 to -6.0)
+    addBox(0.36, 3.0, 0.16, 2.0, 5.70, -8.0, frameMaterial); // South jamb post (hinge side)
+    addBox(0.36, 3.0, 0.16, 2.0, 5.70, -6.0, frameMaterial); // North jamb post
+    addBox(0.36, 0.18, 2.16, 2.0, 7.15, -7.0, frameMaterial); // Top lintel casing
+
+    // Door 2 Pivot Group (Hinge at X = 2.0, Y = 4.20, Z = -8.0)
+    const door2Pivot = new THREE.Group();
+    door2Pivot.position.set(2.0, 4.20, -8.0);
+    // Door Leaf panel inside pivot: 1.2m wide, 2.8m high, 0.06m thick
+    const door2Mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.06, 2.80, 1.20),
+      bed2WoodMat
+    );
+    door2Mesh.position.set(0.0, 1.40, 0.60);
+    door2Pivot.add(door2Mesh);
+    const d2Handle = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.16, 0.05), brassLightMaterial);
+    d2Handle.position.set(0.0, 1.35, 1.10);
+    door2Pivot.add(d2Handle);
+    // Initial half-open angle: +35 deg (0.61 rad) swinging into Bedroom 2
+    door2Pivot.rotation.y = 0.61;
+    houseGroup.add(door2Pivot);
+    doorsRef.current.door2Pivot = door2Pivot;
+
+    // 2. BEDROOM 1 (BALCONY BEDROOM, WEST WING)
+    // Bounds: X: -9.0 to -2.0, Z: -12.0 to 0.0, Floor: Y = 4.20m, Ceiling: Y = 8.40m
+    addBox(7.0, 0.18, 12.0, -5.5, 4.11, -6.0, floorMaterial);
+    addBox(7.0, 0.18, 12.0, -5.5, 8.40, -6.0, secondCeilingMat);
+    // North Partition Wall at Z = -12.0
+    addBox(7.0, 4.20, 0.28, -5.5, 6.30, -12.0, secondWallMat);
+
+    // Large Woven Area Rug (Centered in room)
+    addBox(4.4, 0.02, 5.6, -5.5, 4.21, -6.0, bed1RugMat);
+    addBox(4.5, 0.015, 0.15, -5.5, 4.215, -3.2, new THREE.MeshLambertMaterial({ color: 0x9a8c78 })); // Fringe
+    addBox(4.5, 0.015, 0.15, -5.5, 4.215, -8.8, new THREE.MeshLambertMaterial({ color: 0x9a8c78 })); // Fringe
+
+    // King-Size Bed (Headboard against West wall at X = -8.70, Z = -7.0)
+    // Walnut Carved Headboard
+    addBox(0.24, 1.80, 2.80, -8.70, 5.20, -7.0, bed1WoodMat);
+    addBox(0.28, 0.16, 2.92, -8.70, 6.15, -7.0, bed1WoodMat); // Headboard crown moulding
+    // Bed base frame & footboard
+    addBox(2.80, 0.42, 2.60, -7.20, 4.41, -7.0, bed1WoodMat);
+    addBox(0.18, 0.65, 2.65, -5.75, 4.52, -7.0, bed1WoodMat); // Footboard
+    // Crisp linen mattress & duvet
+    addBox(2.60, 0.38, 2.45, -7.25, 4.70, -7.0, bed1LinenMat);
+    // Terracotta folded wool throw blanket across foot of bed
+    addBox(0.95, 0.08, 2.46, -6.30, 4.93, -7.0, bed1AccentMat);
+    // Dual plush pillows with white linen slips
+    addBox(0.48, 0.22, 0.85, -8.20, 5.00, -7.60, new THREE.MeshLambertMaterial({ color: 0xeeeae2 }));
+    addBox(0.48, 0.22, 0.85, -8.20, 5.00, -6.40, new THREE.MeshLambertMaterial({ color: 0xeeeae2 }));
+
+    // Dual Bedside Nightstands & Ceramic Lamps
+    // North Nightstand
+    addBox(0.65, 0.68, 0.65, -8.50, 4.54, -8.90, bed1WoodMat);
+    addBox(0.22, 0.35, 0.22, -8.50, 5.05, -8.90, new THREE.MeshLambertMaterial({ color: 0xcdc5b6 })); // Ceramic base
+    addBox(0.32, 0.28, 0.32, -8.50, 5.35, -8.90, new THREE.MeshLambertMaterial({ color: 0xf4eedc })); // Lamp shade
+    const lamp1Light = new THREE.PointLight(0xffbe76, 0.65, 5.5);
+    lamp1Light.position.set(-8.50, 5.35, -8.90);
+    houseGroup.add(lamp1Light);
+
+    // South Nightstand
+    addBox(0.65, 0.68, 0.65, -8.50, 4.54, -5.10, bed1WoodMat);
+    addBox(0.22, 0.35, 0.22, -8.50, 5.05, -5.10, new THREE.MeshLambertMaterial({ color: 0xcdc5b6 }));
+    addBox(0.32, 0.28, 0.32, -8.50, 5.35, -5.10, new THREE.MeshLambertMaterial({ color: 0xf4eedc }));
+    const lamp2Light = new THREE.PointLight(0xffbe76, 0.65, 5.5);
+    lamp2Light.position.set(-8.50, 5.35, -5.10);
+    houseGroup.add(lamp2Light);
+
+    // Double Wardrobe / Armoire (Against North wall at X: -7.0, Z = -11.4)
+    addBox(2.40, 2.60, 0.75, -7.00, 5.50, -11.55, bed1WoodMat);
+    addBox(2.55, 0.16, 0.85, -7.00, 6.85, -11.55, bed1WoodMat); // Armoire cornice trim
+    addBox(1.10, 2.20, 0.05, -7.58, 5.40, -11.15, new THREE.MeshLambertMaterial({ color: 0x221810 })); // Left door
+    addBox(1.10, 2.20, 0.05, -6.42, 5.40, -11.15, new THREE.MeshLambertMaterial({ color: 0x221810 })); // Right door
+    addBox(0.04, 0.14, 0.04, -7.10, 5.40, -11.10, brassLightMaterial); // Brass handles
+    addBox(0.04, 0.14, 0.04, -6.90, 5.40, -11.10, brassLightMaterial);
+
+    // Dressing Table with Vanity Mirror (Against East wall at X = -2.5, Z = -2.8)
+    addBox(0.60, 0.80, 1.40, -2.50, 4.60, -2.80, bed1WoodMat);
+    // Table mirror
+    addBox(0.08, 0.90, 0.75, -2.35, 5.45, -2.80, frameMaterial);
+    addBox(0.02, 0.80, 0.65, -2.38, 5.45, -2.80, windowGlassMaterial);
+    // Vanity upholstered stool
+    addBox(0.45, 0.45, 0.45, -3.10, 4.425, -2.80, armchairWoolMat);
+
+    // 3. BEDROOM 2 (EAST BEDROOM, CONTEMPLATIVE STUDY)
+    // Bounds: X: 2.0 to 9.2, Z: -12.0 to -1.0, Floor: Y = 4.20m, Ceiling: Y = 8.40m
+    addBox(7.2, 0.18, 11.0, 5.6, 4.11, -6.5, floorMaterial);
+    addBox(7.2, 0.18, 11.0, 5.6, 8.40, -6.5, secondCeilingMat);
+    // North Partition Wall at Z = -12.0
+    addBox(7.2, 4.20, 0.28, 5.6, 6.30, -12.0, secondWallMat);
+    // South Wall at Z = -1.0
+    addBox(7.2, 4.20, 0.28, 5.6, 6.30, -1.0, secondWallMat);
+
+    // Geometric Slate/Indigo Area Rug
+    addBox(4.2, 0.02, 5.2, 5.6, 4.21, -6.5, bed2RugMat);
+
+    // Cherry Wood Frame Bed (Headboard against East wall at X = 8.90, Z = -6.5)
+    // Cherry Headboard
+    addBox(0.24, 1.70, 2.50, 8.90, 5.15, -6.5, bed2WoodMat);
+    addBox(0.28, 0.14, 2.62, 8.90, 6.05, -6.5, bed2WoodMat);
+    // Cherry Bed frame & footboard
+    addBox(2.60, 0.40, 2.30, 7.45, 4.40, -6.5, bed2WoodMat);
+    addBox(0.16, 0.60, 2.35, 6.10, 4.50, -6.5, bed2WoodMat);
+    // Deep Indigo Linen Mattress & Quilt
+    addBox(2.45, 0.36, 2.15, 7.48, 4.68, -6.5, bed2LinenMat);
+    // White and navy throw pillows
+    addBox(0.45, 0.22, 0.80, 8.40, 4.96, -7.10, new THREE.MeshLambertMaterial({ color: 0xeeeae2 }));
+    addBox(0.45, 0.22, 0.80, 8.40, 4.96, -5.90, new THREE.MeshLambertMaterial({ color: 0x1d293d }));
+
+    // Low Cherry Nightstands & Reading Sconce
+    addBox(0.60, 0.58, 0.60, 8.70, 4.49, -8.20, bed2WoodMat);
+    addBox(0.20, 0.32, 0.20, 8.70, 4.94, -8.20, brassLightMaterial);
+    addBox(0.28, 0.24, 0.28, 8.70, 5.20, -8.20, lampGlowMaterial);
+    const lamp3Light = new THREE.PointLight(0xffbe76, 0.65, 5.5);
+    lamp3Light.position.set(8.70, 5.20, -8.20);
+    houseGroup.add(lamp3Light);
+
+    addBox(0.60, 0.58, 0.60, 8.70, 4.49, -4.80, bed2WoodMat);
+    addBox(0.20, 0.32, 0.20, 8.70, 4.94, -4.80, brassLightMaterial);
+    addBox(0.28, 0.24, 0.28, 8.70, 5.20, -4.80, lampGlowMaterial);
+    const lamp4Light = new THREE.PointLight(0xffbe76, 0.65, 5.5);
+    lamp4Light.position.set(8.70, 5.20, -4.80);
+    houseGroup.add(lamp4Light);
+
+    // Built-In Library Bookcase Casework (Against North wall at Z = -11.6, X: 3.0 to 7.8)
+    addBox(4.80, 2.70, 0.55, 5.40, 5.55, -11.65, bed2WoodMat);
+    addBox(4.95, 0.16, 0.65, 5.40, 6.95, -11.65, bed2WoodMat); // Casework cornice
+    // Horizontal shelves
+    [4.85, 5.50, 6.15].forEach((sy) => {
+      addBox(4.70, 0.05, 0.50, 5.40, sy, -11.62, bed2WoodMat);
+    });
+    // Vertical upright dividers
+    [3.10, 4.60, 6.10, 7.60].forEach((ux) => {
+      addBox(0.06, 2.60, 0.52, ux, 5.50, -11.62, bed2WoodMat);
+    });
+    // Books on shelves (jewel tone leather spines & parchment volumes)
+    const bookTones = [0x8a3324, 0x245842, 0xa87c24, 0x244278, 0x483424, 0x6e2c34, 0x284838];
+    for (let bx = 3.25; bx <= 7.45; bx += 0.12) {
+      const bHeight = 0.22 + (Math.sin(bx * 13) * 0.06);
+      const bColor = bookTones[Math.abs(Math.floor(bx * 7)) % bookTones.length];
+      addBox(0.09, bHeight, 0.35, bx, 4.95 + bHeight / 2, -11.58, new THREE.MeshLambertMaterial({ color: bColor }));
+      addBox(0.09, bHeight * 0.9, 0.35, bx, 5.60 + bHeight * 0.45, -11.58, new THREE.MeshLambertMaterial({ color: bColor }));
+    }
+
+    // Reading Armchair & Footstool (Near the window at X = 3.8, Z = -3.2)
+    // Deep Charcoal Armchair
+    addBox(0.85, 0.45, 0.85, 3.80, 4.425, -3.20, armchairWoolMat); // Seat
+    addBox(0.85, 0.80, 0.22, 3.80, 4.90, -3.60, armchairWoolMat);  // Backrest
+    addBox(0.18, 0.65, 0.85, 3.35, 4.60, -3.20, armchairWoolMat);  // Left arm
+    addBox(0.18, 0.65, 0.85, 4.25, 4.60, -3.20, armchairWoolMat);  // Right arm
+    // Footstool
+    addBox(0.55, 0.38, 0.55, 3.80, 4.39, -2.30, armchairWoolMat);
+    // Brass Floor Reading Lamp
+    addBox(0.32, 0.04, 0.32, 4.55, 4.22, -3.60, brassDarkMaterial); // Base
+    addBox(0.04, 1.55, 0.04, 4.55, 4.98, -3.60, brassLightMaterial); // Pole
+    addBox(0.24, 0.22, 0.24, 4.55, 5.75, -3.60, lampGlowMaterial);  // Shade
+    const chairLampLight = new THREE.PointLight(0xffbe76, 0.60, 4.5);
+    chairLampLight.position.set(4.55, 5.75, -3.60);
+    houseGroup.add(chairLampLight);
+
+    // Wide Dresser with Mirror (Against South wall at X: 5.2 to 7.8, Z = -1.5)
+    addBox(2.40, 1.05, 0.65, 6.50, 4.725, -1.45, bed2WoodMat);
+    addBox(2.50, 0.08, 0.70, 6.50, 5.28, -1.45, bed2WoodMat); // Dresser top
+    // Framed mirror above dresser
+    addBox(1.80, 1.20, 0.06, 6.50, 6.20, -1.18, frameMaterial);
+    addBox(1.65, 1.05, 0.02, 6.50, 6.20, -1.14, windowGlassMaterial);
+
     scene.add(houseGroup);
 
     // ─────────────────────────────────────────────────────────────
@@ -3397,6 +3884,37 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
           }
           manifestationRef.current.onComplete?.();
         }
+      }
+
+      // ─── Interactive Half-Open Bedroom Doors (Approach & Push Swing Animation) ───
+      const camPos = camera.position;
+      // If player is on second floor elevation (y >= 5.0m)
+      if (camPos.y >= 5.0) {
+        // Door 1 proximity check (Bedroom 1 doorway at X = -2.0, Z = -8.0 to -6.0)
+        const distDoor1 = Math.hypot(camPos.x - (-2.0), camPos.z - (-7.0));
+        if (distDoor1 < 2.4) {
+          doorsRef.current.door1Open = true;
+        }
+
+        // Door 2 proximity check (Bedroom 2 doorway at X = 2.0, Z = -8.0 to -6.0)
+        const distDoor2 = Math.hypot(camPos.x - 2.0, camPos.z - (-7.0));
+        if (distDoor2 < 2.4) {
+          doorsRef.current.door2Open = true;
+        }
+      }
+
+      // Smoothly animate Door 1 rotation around hinge (from -0.61 rad to -Math.PI/2)
+      if (doorsRef.current.door1Pivot) {
+        const targetAngle1 = doorsRef.current.door1Open ? -Math.PI / 2 : -0.61;
+        doorsRef.current.door1Angle += (targetAngle1 - doorsRef.current.door1Angle) * Math.min(1.0, 5.0 * delta);
+        doorsRef.current.door1Pivot.rotation.y = doorsRef.current.door1Angle;
+      }
+
+      // Smoothly animate Door 2 rotation around hinge (from 0.61 rad to Math.PI/2)
+      if (doorsRef.current.door2Pivot) {
+        const targetAngle2 = doorsRef.current.door2Open ? Math.PI / 2 : 0.61;
+        doorsRef.current.door2Angle += (targetAngle2 - doorsRef.current.door2Angle) * Math.min(1.0, 5.0 * delta);
+        doorsRef.current.door2Pivot.rotation.y = doorsRef.current.door2Angle;
       }
 
       // Render 3D scene through AsciiEffect

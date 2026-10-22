@@ -77,6 +77,19 @@ export default function HouseMapModal({
               <span>1:1 SCALE</span>
             </div>
             <pre className="font-mono text-[10px] sm:text-[11px] leading-tight text-[#38ef7d] overflow-x-auto select-none py-1">{staircaseUnlocked ? `                                 ┌───────────────────────────┐
+                                 │ [07B] FRONT BALCONY       │
+                                 │  · Overlooking Walkway    │
+                                 └─────────────┬─────────────┘
+                                               │ (French Doors Z: 0)
+   ┌───────────────────────────┐ ┌─────────────┴─────────────┐ ┌───────────────────────────┐
+   │ [07] BEDROOM 1 (BALCONY)  │ │ [06] UPPER CENTRAL HALL   │ │ [08] BEDROOM 2 (EAST RM)  │
+   │  · King Bed & Headboard   │ │  · Sconces & Beams        │ │  · Cherry Bed & Casework  │
+   │  · Armoire & Dressing Tbl │ │  · Interactive Doors      │ │  · Armchair & Dresser     │
+   └─────────────┬─────────────┘ └─────────────┬─────────────┘ └─────────────┬─────────────┘
+                 │ (Door 1 Z: -7)              │                             │ (Door 2 Z: -7)
+                 └─────────────────────────────┼─────────────────────────────┘
+                                               │ (Landing Connection Z: -19.5)
+                                 ┌─────────────┴─────────────┐
                                  │ [05] SECOND FLOOR LANDING │
                                  │  · Overlook Mezzanine 4.2m│
                                  │  · Uncanny Spiral Stair   │
@@ -132,7 +145,7 @@ export default function HouseMapModal({
             <div className="text-[11px] font-bold text-[#13265C] mb-2 flex items-center gap-1">
               <span>🚪</span> Fast Navigation — Active Sectors:
             </div>
-            <div className={`grid grid-cols-1 sm:grid-cols-3 ${staircaseUnlocked ? "md:grid-cols-6" : "md:grid-cols-5"} gap-2`}>
+            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-5 gap-2">
               {[
                 { id: "exterior", num: "00", name: "The Grounds", note: "Facade & Walkway" },
                 { id: "entrance_hall", num: "01", name: "Entrance Hall", note: "Gallery Corridor" },
@@ -146,6 +159,30 @@ export default function HouseMapModal({
                         num: "05",
                         name: "2nd Fl. Landing",
                         note: "Mezzanine & Overlook",
+                      },
+                      {
+                        id: "second_floor_hallway",
+                        num: "06",
+                        name: "Upper Hallway",
+                        note: "Central Corridor",
+                      },
+                      {
+                        id: "bedroom_1",
+                        num: "07",
+                        name: "Bedroom 1",
+                        note: "Balcony Chamber",
+                      },
+                      {
+                        id: "balcony",
+                        num: "07B",
+                        name: "Front Balcony",
+                        note: "Forecourt Overlook",
+                      },
+                      {
+                        id: "bedroom_2",
+                        num: "08",
+                        name: "Bedroom 2",
+                        note: "East Chamber",
                       },
                     ]
                   : []),

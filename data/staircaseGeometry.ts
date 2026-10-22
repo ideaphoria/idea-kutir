@@ -15,11 +15,11 @@ export const STAIRCASE_CONFIG = {
 
   // Heights & Steps
   numPlayableSteps: 21,
-  numContinuationSteps: 63,
-  totalSteps: 84, // 21 playable + 63 continuation
+  numContinuationSteps: 28,
+  totalSteps: 49, // 21 playable + 28 continuation (up to Y = 9.80m capped within roof)
   stepRise: 0.20, // 21 * 0.20 = 4.20m to mezzanine
   mezzanineFloorY: 4.20,
-  continuationMaxY: 16.80, // 84 * 0.20 = 16.80m
+  continuationMaxY: 9.80, // 49 * 0.20 = 9.80m (fully enclosed under roof ridge at 10.5m-11.2m)
 
   // Angular progression
   // Counterclockwise: angle decreases as step index increases
@@ -42,7 +42,37 @@ export const STAIRCASE_CONFIG = {
     maxX: 2.8,
     minZ: -23.0,
     maxZ: -19.5,
-    ceilingY: 18.0,
+    ceilingY: 9.80, // Safely under continuous roof structure (peak 10.5m-11.2m)
+  },
+} as const;
+
+export const SECOND_FLOOR_CONFIG = {
+  floorY: 4.20,
+  wallHeight: 4.20,
+  ceilingY: 8.40,
+  hallway: {
+    minX: -2.0,
+    maxX: 2.0,
+    minZ: -19.5,
+    maxZ: -2.0,
+  },
+  bedroom1: {
+    minX: -9.0,
+    maxX: -2.0,
+    minZ: -12.0,
+    maxZ: 0.0,
+  },
+  balcony: {
+    minX: -6.8,
+    maxX: -3.2,
+    minZ: 0.0,
+    maxZ: 1.8,
+  },
+  bedroom2: {
+    minX: 2.0,
+    maxX: 9.2,
+    minZ: -12.0,
+    maxZ: -1.0,
   },
 } as const;
 
@@ -71,8 +101,8 @@ export function getTreadData(stepIndex: number): TreadGeometryData {
   let colorMultiplier = 1.0;
   if (!isPlayable) {
     const continuationProgress =
-      (stepIndex - STAIRCASE_CONFIG.numPlayableSteps) / STAIRCASE_CONFIG.numContinuationSteps;
-    colorMultiplier = Math.max(0.12, 1.0 - continuationProgress * 0.88);
+      (stepIndex - STAIRCASE_CONFIG.numPlayableSteps) / Math.max(1, STAIRCASE_CONFIG.numContinuationSteps - 1);
+    colorMultiplier = Math.max(0.08, 1.0 - continuationProgress * 0.92);
   }
 
   return {
