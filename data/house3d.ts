@@ -214,6 +214,36 @@ export const HOUSE_ROOMS_3D: Record<string, Room3D> = {
       yaw: Math.PI / 2, // Facing West directly towards the windows, tree, and garden
     },
   },
+
+  second_floor_landing: {
+    id: "second_floor_landing",
+    number: "05",
+    name: "Second Floor Landing",
+    subtitle: "Mezzanine & Impossible Staircase Overlook",
+    discipline: "Spatial Drift, Upper Elevation & The Impossible Ascent",
+    description: "An impossible mezzanine suspended 4.2m above the Entrance Hall. Wooden balustrades overlook the hallway below, while an uncanny spiral staircase visibly continues upward into shadow before a locked double door.",
+    atmosphericNote: "Cool drafts from above, silence echoing from the ground floor, faint amber light seeping under the door.",
+    level: "second_floor",
+    projectIds: [],
+    objectIds: [],
+    bounds: {
+      minX: -2.8,
+      maxX: 2.8,
+      minZ: -23.0,
+      maxZ: -19.5,
+      floorY: 4.2,
+      ceilY: 18.0,
+    },
+    doorways: [
+      { x: 0, z: -21.2, width: 2.0, height: 4.2, orientation: "z", leadsTo: "entrance_hall" },
+    ],
+    spawnPoint: {
+      x: 0,
+      y: 5.9,
+      z: -21.8,
+      yaw: 0, // Facing South overlooking the Entrance Hall below
+    },
+  },
 };
 
 export const HOUSE_OBJECTS_3D: InteractiveObject3D[] = [

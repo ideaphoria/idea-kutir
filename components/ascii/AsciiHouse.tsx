@@ -6,6 +6,7 @@ import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { CustomAsciiRenderer } from "./CustomAsciiRenderer";
 import { HOUSE_OBJECTS_3D, InteractiveObject3D } from "@/data/house3d";
 import { FirstPersonNavigator, ControlTelemetry } from "./FirstPersonControls";
+import { STAIRCASE_CONFIG, getTreadData } from "@/data/staircaseGeometry";
 import AsciiHUD from "./AsciiHUD";
 import ObjectInspector from "./ObjectInspector";
 import ProfileModal from "./ProfileModal";
@@ -208,6 +209,59 @@ export default function AsciiHouse() {
     return new Set(["exterior"]);
   });
 
+  // Second Floor & Impossible Staircase Exploration Tracking
+  const [visitedEligibleRooms, setVisitedEligibleRooms] = useState<Set<string>>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = sessionStorage.getItem("house_visited_eligible_rooms");
+        return stored ? new Set(JSON.parse(stored)) : new Set();
+      } catch {}
+    }
+    return new Set();
+  });
+  const [thirdRoomId, setThirdRoomId] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return sessionStorage.getItem("house_third_room_id");
+      } catch {}
+    }
+    return null;
+  });
+  const [staircaseState, setStaircaseState] = useState<"hidden" | "manifesting" | "manifested">(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return sessionStorage.getItem("house_staircase_manifested") === "true" ? "manifested" : "hidden";
+      } catch {}
+    }
+    return "hidden";
+  });
+  const [hasPlayedStairsDialogue, setHasPlayedStairsDialogue] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return sessionStorage.getItem("house_stairs_dialogue_played") === "true";
+      } catch {}
+    }
+    return false;
+  });
+  const [pendingStairsDialogue, setPendingStairsDialogue] = useState<boolean>(false);
+  const prevRoomIdRef = useRef<string>("exterior");
+  const manifestationRef = useRef<{
+    isManifesting: boolean;
+    startTime: number;
+    duration: number;
+    endWallMesh: THREE.Mesh | null;
+    ceilingClosureMesh: THREE.Mesh | null;
+    staircaseGroup: THREE.Group | null;
+    onComplete?: () => void;
+  }>({
+    isManifesting: false,
+    startTime: 0,
+    duration: 4500,
+    endWallMesh: null,
+    ceilingClosureMesh: null,
+    staircaseGroup: null,
+  });
+
   const [hostDialogueConfig, setHostDialogueConfig] = useState<{
     lines: DialogueLine[];
     title?: string;
@@ -248,6 +302,150 @@ export default function AsciiHouse() {
       });
     }
   }, [telemetry.currentRoomId]);
+
+  // Master of the House Stairs Manifestation Dialogue
+  const triggerStairsDialogue = useCallback(() => {
+    setDialogueAppearanceCount((prev) => {
+      const next = prev + 1;
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem("house_dialogue_appearance_count", next.toString());
+        } catch {}
+      }
+      return next;
+    });
+
+    setHostDialogueConfig({
+      lines: [
+        {
+          speaker: "Master of the House",
+          text: "Oh. Those weren't there a moment ago, were they?\n\nFunny what a house can find room for when it feels like it.",
+        },
+      ],
+      title: "Master of the House",
+      confirmButtonText: "Investigate the stairs",
+      showCancelButton: false,
+      hideCloseButton: true,
+      instantText: false,
+      onProceed: () => {
+        setHasPlayedStairsDialogue(true);
+        if (typeof window !== "undefined") {
+          try {
+            sessionStorage.setItem("house_stairs_dialogue_played", "true");
+          } catch {}
+        }
+        setHostDialogueConfig(null);
+      },
+    });
+  }, []);
+
+  const triggerStaircaseManifestation = useCallback(() => {
+    setStaircaseState("manifesting");
+    manifestationRef.current.isManifesting = true;
+    manifestationRef.current.startTime = performance.now();
+    manifestationRef.current.onComplete = () => {
+      setStaircaseState("manifested");
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem("house_staircase_manifested", "true");
+        } catch {}
+      }
+      if (navigatorRef.current) {
+        navigatorRef.current.staircaseActive = true;
+      }
+      const hasOpenModal =
+        isProfileOpen ||
+        isMapOpen ||
+        isInventoryOpen ||
+        isProjectDirectoryOpen ||
+        !!inspectedObject;
+      if (hasOpenModal) {
+        setPendingStairsDialogue(true);
+      } else {
+        triggerStairsDialogue();
+      }
+    };
+  }, [
+    isProfileOpen,
+    isMapOpen,
+    isInventoryOpen,
+    isProjectDirectoryOpen,
+    inspectedObject,
+    triggerStairsDialogue,
+  ]);
+
+  // Queue staircase dialogue if modals were active when manifestation completed
+  useEffect(() => {
+    const hasOpenModal =
+      isProfileOpen ||
+      isMapOpen ||
+      isInventoryOpen ||
+      isProjectDirectoryOpen ||
+      !!inspectedObject;
+    if (!hasOpenModal && pendingStairsDialogue && !hasPlayedStairsDialogue) {
+      setPendingStairsDialogue(false);
+      triggerStairsDialogue();
+    }
+  }, [
+    isProfileOpen,
+    isMapOpen,
+    isInventoryOpen,
+    isProjectDirectoryOpen,
+    inspectedObject,
+    pendingStairsDialogue,
+    hasPlayedStairsDialogue,
+    triggerStairsDialogue,
+  ]);
+
+  // Exploration room tracking & 3rd-room exit detection
+  useEffect(() => {
+    const curr = telemetry.currentRoomId;
+    const prev = prevRoomIdRef.current;
+    prevRoomIdRef.current = curr;
+
+    const ELIGIBLE_ROOMS = ["living_room", "study", "art_room"];
+    if (ELIGIBLE_ROOMS.includes(curr)) {
+      setVisitedEligibleRooms((prevSet) => {
+        if (prevSet.has(curr)) return prevSet;
+        const nextSet = new Set(prevSet);
+        nextSet.add(curr);
+        if (typeof window !== "undefined") {
+          try {
+            sessionStorage.setItem(
+              "house_visited_eligible_rooms",
+              JSON.stringify(Array.from(nextSet))
+            );
+          } catch {}
+        }
+        if (nextSet.size === 3 && !thirdRoomId) {
+          setThirdRoomId(curr);
+          if (typeof window !== "undefined") {
+            try {
+              sessionStorage.setItem("house_third_room_id", curr);
+            } catch {}
+          }
+        }
+        return nextSet;
+      });
+    }
+
+    // Trigger manifestation only when exiting the third distinct room
+    if (
+      staircaseState === "hidden" &&
+      thirdRoomId &&
+      prev === thirdRoomId &&
+      curr !== thirdRoomId
+    ) {
+      triggerStaircaseManifestation();
+    }
+  }, [telemetry.currentRoomId, thirdRoomId, staircaseState, triggerStaircaseManifestation]);
+
+  // Synchronize staircase active state on navigator
+  useEffect(() => {
+    if (navigatorRef.current) {
+      navigatorRef.current.staircaseActive = staircaseState === "manifested";
+    }
+  }, [staircaseState]);
 
   const handleCollect = useCallback((objId: string) => {
     setCollectedItemIds((prev) => {
@@ -842,6 +1040,7 @@ export default function AsciiHouse() {
       },
       onInteract: () => handleInteractRef.current(),
     });
+    navigator.staircaseActive = staircaseState === "manifested";
     navigatorRef.current = navigator;
     if (typeof window !== "undefined") {
       (window as unknown as { __ascii_navigator?: FirstPersonNavigator }).__ascii_navigator = navigator;
@@ -1219,11 +1418,226 @@ export default function AsciiHouse() {
 
     // ─── B. ENTRANCE HALL (Z: 0.0 to -21.0, X: -2.8 to +2.8, Height 4.2m) ───
     // Hall Floor (dark planks elevated safely above ground)
-    addBox(5.6, 0.22, 21.0, 0.0, -0.01, -10.5, floorMaterial);
-    // Hall Ceiling
-    addBox(5.6, 0.2, 21.0, 0.0, 4.2, -10.5, ceilingMaterial);
-    // Hall North End Wall (deepest point of the axial corridor)
-    addBox(5.6, 4.2, 0.6, 0.0, 2.1, -21.0, darkWallMaterial);
+    addBox(5.6, 0.22, 19.5, 0.0, -0.01, -9.75, floorMaterial);
+    // Hall Floor segment leading into stairwell (Z: -19.5 to -21.0)
+    addBox(5.6, 0.22, 1.5, 0.0, -0.01, -20.25, floorMaterial);
+    // Stairwell Alcove Floor (Z: -21.0 to -23.0)
+    addBox(5.6, 0.22, 2.0, 0.0, -0.01, -22.0, floorMaterial);
+
+    // Hall Main Ceiling (Z: 0.0 to -19.5, height 4.2m)
+    addBox(5.6, 0.2, 19.5, 0.0, 4.2, -9.75, ceilingMaterial);
+    // Architectural Portal Beam framing entrance to stairwell shaft at Z = -19.5
+    addBox(5.6, 0.45, 0.35, 0.0, 4.0, -19.5, beamMaterial);
+
+    // Removable ceiling closure over Z: -19.5 to -21.0 (hides vertical shaft until manifested)
+    const northCeilingClosureMesh = addBox(5.6, 0.2, 1.5, 0.0, 4.2, -20.25, ceilingMaterial);
+    // Removable North End Wall at Z = -21.0 (dissolves to reveal stairwell)
+    const northEndWallMesh = addBox(5.6, 4.2, 0.6, 0.0, 2.1, -21.0, darkWallMaterial);
+
+    // ─── STAIRWELL VERTICAL SHAFT (X: -2.8 to 2.8, Z: -19.5 to -23.0, Y: 0.0 to 18.0m) ───
+    const shaftWallMat = new THREE.MeshLambertMaterial({ color: 0x16120e });
+    const shaftCapMat = new THREE.MeshLambertMaterial({ color: 0x050403 });
+    // North Back Wall of Stairwell (Z = -23.0, 18.0m tall, flush with Art Room North wall)
+    addBox(5.6, 18.0, 0.6, 0.0, 9.0, -23.0, shaftWallMat);
+    // West Upper Shaft Wall (X = -2.8, rising from Y = 5.6 to 18.0m above Living Room ceiling)
+    addBox(0.6, 12.4, 3.5, -2.8, 11.8, -21.25, shaftWallMat);
+    // East Upper Shaft Wall (X = 2.8, rising from Y = 4.2 to 18.0m above Art Room ceiling)
+    addBox(0.6, 13.8, 3.5, 2.8, 11.1, -21.25, shaftWallMat);
+    // Shaft Ceiling Cap at Y = 18.0m (pitch black abyss)
+    addBox(5.6, 0.6, 3.5, 0.0, 18.0, -21.25, shaftCapMat);
+
+    // ─── 3D IMPOSSIBLE SPIRAL STAIRCASE & MEZZANINE LANDING ───
+    const staircaseGroup = new THREE.Group();
+
+    // Central Spindle Post (r = 0.22, height = 18.0m, center = 0.0, -21.2)
+    const spindleGeo = new THREE.CylinderGeometry(
+      STAIRCASE_CONFIG.spindleRadius,
+      STAIRCASE_CONFIG.spindleRadius,
+      18.0,
+      16
+    );
+    const spindleMat = new THREE.MeshLambertMaterial({ color: 0x1c1510 }); // Dark polished walnut
+    const spindleMesh = new THREE.Mesh(spindleGeo, spindleMat);
+    spindleMesh.position.set(STAIRCASE_CONFIG.centerX, 9.0, STAIRCASE_CONFIG.centerZ);
+    staircaseGroup.add(spindleMesh);
+
+    // Tread & Riser Materials
+    const walnutTreadMat = new THREE.MeshLambertMaterial({ color: 0x3d2b1e });
+    const nosingTrimMat = new THREE.MeshLambertMaterial({ color: 0x8a633a }); // High contrast leading edge for ASCII
+    const darkRiserMat = new THREE.MeshLambertMaterial({ color: 0x241a12 });
+    const balusterMat = new THREE.MeshLambertMaterial({ color: 0x201710 });
+    const handrailMat = new THREE.MeshLambertMaterial({ color: 0x422f20 });
+
+    // Common Geometries
+    const treadBoxGeo = new THREE.BoxGeometry(1.15, 0.06, 0.32);
+    const nosingBoxGeo = new THREE.BoxGeometry(1.15, 0.02, 0.04);
+    const riserBoxGeo = new THREE.BoxGeometry(1.15, 0.20, 0.03);
+    const balusterGeo = new THREE.BoxGeometry(0.04, 0.95, 0.04);
+    const handrailSegmentGeo = new THREE.BoxGeometry(0.08, 0.06, 0.36);
+
+    // Playable Steps 0 to 20 (Y: 0.20m to 4.20m)
+    for (let i = 0; i < STAIRCASE_CONFIG.numPlayableSteps; i++) {
+      const data = getTreadData(i);
+
+      // Tread slab
+      const treadMesh = new THREE.Mesh(treadBoxGeo, walnutTreadMat);
+      treadMesh.position.set(data.x, data.y - 0.03, data.z);
+      treadMesh.rotation.y = data.rotationY;
+      staircaseGroup.add(treadMesh);
+
+      // Nosing trim on leading edge
+      const nosingMesh = new THREE.Mesh(nosingBoxGeo, nosingTrimMat);
+      nosingMesh.position.set(data.x, data.y - 0.01, data.z);
+      nosingMesh.rotation.y = data.rotationY;
+      staircaseGroup.add(nosingMesh);
+
+      // Vertical riser
+      const riserMesh = new THREE.Mesh(riserBoxGeo, darkRiserMat);
+      riserMesh.position.set(data.x, data.y - 0.10, data.z);
+      riserMesh.rotation.y = data.rotationY;
+      staircaseGroup.add(riserMesh);
+
+      // Outer baluster
+      const bx = STAIRCASE_CONFIG.centerX - 1.45 * Math.cos(data.theta);
+      const bz = STAIRCASE_CONFIG.centerZ + 1.45 * Math.sin(data.theta);
+      const balusterMesh = new THREE.Mesh(balusterGeo, balusterMat);
+      balusterMesh.position.set(bx, data.y + 0.45, bz);
+      staircaseGroup.add(balusterMesh);
+
+      // Handrail segment
+      const handrailMesh = new THREE.Mesh(handrailSegmentGeo, handrailMat);
+      handrailMesh.position.set(bx, data.y + 0.95, bz);
+      handrailMesh.rotation.y = data.rotationY;
+      staircaseGroup.add(handrailMesh);
+    }
+
+    // ─── Playable Mezzanine Landing at Y = 4.20m ───
+    const landingFloorMat = new THREE.MeshLambertMaterial({ color: 0x332419 });
+    const landingFloor = new THREE.Mesh(
+      new THREE.BoxGeometry(4.8, 0.15, 2.6),
+      landingFloorMat
+    );
+    landingFloor.position.set(0.0, 4.125, -21.5);
+    staircaseGroup.add(landingFloor);
+
+    // Landing Perimeter Balustrade along South edge (Z = -20.2)
+    // Left segment: X = -2.4 to -0.4
+    const balustradeRailGeo1 = new THREE.BoxGeometry(2.0, 0.08, 0.08);
+    const railSouthLeft = new THREE.Mesh(balustradeRailGeo1, handrailMat);
+    railSouthLeft.position.set(-1.4, 5.12, -20.2);
+    staircaseGroup.add(railSouthLeft);
+    for (let sx = -2.3; sx <= -0.5; sx += 0.25) {
+      const b = new THREE.Mesh(balusterGeo, balusterMat);
+      b.position.set(sx, 4.65, -20.2);
+      staircaseGroup.add(b);
+    }
+
+    // Right segment: X = 0.4 to 2.4
+    const railSouthRight = new THREE.Mesh(balustradeRailGeo1, handrailMat);
+    railSouthRight.position.set(1.4, 5.12, -20.2);
+    staircaseGroup.add(railSouthRight);
+    for (let sx = 0.5; sx <= 2.3; sx += 0.25) {
+      const b = new THREE.Mesh(balusterGeo, balusterMat);
+      b.position.set(sx, 4.65, -20.2);
+      staircaseGroup.add(b);
+    }
+
+    // West and East landing wall baseboards
+    const landingBaseMat = new THREE.MeshLambertMaterial({ color: 0x1f1610 });
+    const baseW = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.18, 2.5), landingBaseMat);
+    baseW.position.set(-2.36, 4.29, -21.5);
+    staircaseGroup.add(baseW);
+    const baseE = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.18, 2.5), landingBaseMat);
+    baseE.position.set(2.36, 4.29, -21.5);
+    staircaseGroup.add(baseE);
+
+    // Architectural Locked Double Doors on North Wall of Landing (Z = -22.75)
+    const doorFrameMat = new THREE.MeshLambertMaterial({ color: 0x2b1e15 });
+    const doorLeafMat = new THREE.MeshLambertMaterial({ color: 0x1a130d });
+    const brassMat = new THREE.MeshLambertMaterial({ color: 0xa8853b }); // Brass handles
+
+    // Door frame
+    const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(2.3, 3.2, 0.16), doorFrameMat);
+    doorFrame.position.set(0.0, 5.75, -22.72);
+    staircaseGroup.add(doorFrame);
+
+    // Left and right door panels
+    const doorLeft = new THREE.Mesh(new THREE.BoxGeometry(0.98, 2.9, 0.08), doorLeafMat);
+    doorLeft.position.set(-0.52, 5.65, -22.75);
+    staircaseGroup.add(doorLeft);
+    const doorRight = new THREE.Mesh(new THREE.BoxGeometry(0.98, 2.9, 0.08), doorLeafMat);
+    doorRight.position.set(0.52, 5.65, -22.75);
+    staircaseGroup.add(doorRight);
+
+    // Brass handles
+    const handleL = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.18, 0.06), brassMat);
+    handleL.position.set(-0.10, 5.65, -22.68);
+    staircaseGroup.add(handleL);
+    const handleR = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.18, 0.06), brassMat);
+    handleR.position.set(0.10, 5.65, -22.68);
+    staircaseGroup.add(handleR);
+
+    // Amber light spill slit seeping under the door
+    const underDoorLightMat = new THREE.MeshBasicMaterial({ color: 0xffaa22 });
+    const underDoorSlab = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.015, 0.35), underDoorLightMat);
+    underDoorSlab.position.set(0.0, 4.208, -22.55);
+    staircaseGroup.add(underDoorSlab);
+
+    // ─── 4-Storey Visual Continuation (Steps 21 to 83, Y: 4.4m to 16.8m) ───
+    for (let i = STAIRCASE_CONFIG.numPlayableSteps; i < STAIRCASE_CONFIG.totalSteps; i++) {
+      const data = getTreadData(i);
+      const mult = data.colorMultiplier;
+
+      const contTreadMat = new THREE.MeshLambertMaterial({
+        color: new THREE.Color(0.38 * mult, 0.27 * mult, 0.19 * mult),
+      });
+      const contBalusterMat = new THREE.MeshLambertMaterial({
+        color: new THREE.Color(0.20 * mult, 0.15 * mult, 0.10 * mult),
+      });
+
+      // Continuation tread
+      const cTread = new THREE.Mesh(treadBoxGeo, contTreadMat);
+      cTread.position.set(data.x, data.y - 0.03, data.z);
+      cTread.rotation.y = data.rotationY;
+      staircaseGroup.add(cTread);
+
+      // Continuation outer baluster
+      const bx = STAIRCASE_CONFIG.centerX - 1.45 * Math.cos(data.theta);
+      const bz = STAIRCASE_CONFIG.centerZ + 1.45 * Math.sin(data.theta);
+      const cBaluster = new THREE.Mesh(balusterGeo, contBalusterMat);
+      cBaluster.position.set(bx, data.y + 0.45, bz);
+      staircaseGroup.add(cBaluster);
+
+      // Continuation handrail
+      const cRail = new THREE.Mesh(handrailSegmentGeo, contBalusterMat);
+      cRail.position.set(bx, data.y + 0.95, bz);
+      cRail.rotation.y = data.rotationY;
+      staircaseGroup.add(cRail);
+    }
+
+    // Landing Wall Sconce Light
+    const landingSconce = new THREE.PointLight(0xffbe76, 0.85, 8.0);
+    landingSconce.position.set(1.9, 5.6, -21.5);
+    staircaseGroup.add(landingSconce);
+
+    // Add staircase group to houseGroup
+    houseGroup.add(staircaseGroup);
+
+    // Wire refs for manifestation animation
+    manifestationRef.current.endWallMesh = northEndWallMesh;
+    manifestationRef.current.ceilingClosureMesh = northCeilingClosureMesh;
+    manifestationRef.current.staircaseGroup = staircaseGroup;
+
+    // Apply initial manifestation state
+    if (staircaseState === "manifested") {
+      northEndWallMesh.visible = false;
+      northCeilingClosureMesh.visible = false;
+      staircaseGroup.visible = true;
+    } else {
+      northEndWallMesh.visible = true;
+      northCeilingClosureMesh.visible = true;
+      staircaseGroup.visible = false;
+    }
 
     // East Wall (Hallway inner face at X = 2.56, back at X = 2.80, with Art Room aperture at Z = -7.5 and Study aperture at Z = -18.0)
     addBox(0.24, 4.2, 6.2, 2.68, 2.1, -3.1, wallMaterial);       // South of Art Room (Z: 0.0 to -6.2)
@@ -1253,7 +1667,7 @@ export default function AsciiHouse() {
     addBox(0.6, 0.25, 3.2, -2.8, 3.2, -18.0, frameMaterial); // Lintel trim
 
     // Exposed Ceiling Beams across the Hallway (sharply converging perspective lines)
-    [-3.5, -7.0, -10.5, -14.0, -17.5, -20.5].forEach((bz) => {
+    [-3.5, -7.0, -10.5, -14.0, -17.5].forEach((bz) => {
       addBox(5.6, 0.32, 0.28, 0.0, 4.04, bz, beamMaterial);
     });
 
@@ -2931,7 +3345,59 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
       });
 
       hoveredObjectRef.current = closestObj;
-      setHoveredObject(closestObj);
+      // ─── Manifestation Animation Progression ───
+      if (manifestationRef.current.isManifesting) {
+        const elapsed = performance.now() - manifestationRef.current.startTime;
+
+        // Phase 1 (0.0s - 1.5s): House of Leaves ASCII scanline wave and character flicker
+        if (elapsed < 1500) {
+          const p1 = elapsed / 1500;
+          effect.manifestationDistortion = Math.sin(p1 * Math.PI) * 0.70;
+        }
+        // Phase 2 (1.5s - 3.5s): North end wall slides down, staircase solidifies
+        else if (elapsed < 3500) {
+          const p2 = (elapsed - 1500) / 2000;
+          effect.manifestationDistortion = (1.0 - p2) * 0.40;
+
+          if (manifestationRef.current.endWallMesh) {
+            manifestationRef.current.endWallMesh.position.y = 2.1 - p2 * 4.6;
+          }
+          if (manifestationRef.current.ceilingClosureMesh) {
+            manifestationRef.current.ceilingClosureMesh.position.y = 4.2 + p2 * 1.5;
+          }
+          if (manifestationRef.current.staircaseGroup) {
+            manifestationRef.current.staircaseGroup.visible = true;
+          }
+        }
+        // Phase 3 (3.5s - 4.2s): Shading stabilizes into permanent architecture
+        else if (elapsed < 4200) {
+          effect.manifestationDistortion = 0.0;
+          if (manifestationRef.current.endWallMesh) {
+            manifestationRef.current.endWallMesh.visible = false;
+          }
+          if (manifestationRef.current.ceilingClosureMesh) {
+            manifestationRef.current.ceilingClosureMesh.visible = false;
+          }
+          if (manifestationRef.current.staircaseGroup) {
+            manifestationRef.current.staircaseGroup.visible = true;
+          }
+        }
+        // Phase 4 (>= 4.2s): Resolve completed state and trigger dialogue
+        else {
+          manifestationRef.current.isManifesting = false;
+          effect.manifestationDistortion = 0.0;
+          if (manifestationRef.current.endWallMesh) {
+            manifestationRef.current.endWallMesh.visible = false;
+          }
+          if (manifestationRef.current.ceilingClosureMesh) {
+            manifestationRef.current.ceilingClosureMesh.visible = false;
+          }
+          if (manifestationRef.current.staircaseGroup) {
+            manifestationRef.current.staircaseGroup.visible = true;
+          }
+          manifestationRef.current.onComplete?.();
+        }
+      }
 
       // Render 3D scene through AsciiEffect
       effect.render(scene, camera);
@@ -3255,6 +3721,7 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
           currentRoomId={telemetry.currentRoomId}
           onSelectRoom={handleSelectRoom}
           onClose={() => handleCloseObjectModal("obj-hallway-map", "Architectural Map")}
+          staircaseUnlocked={staircaseState === "manifested"}
         />
       )}
 

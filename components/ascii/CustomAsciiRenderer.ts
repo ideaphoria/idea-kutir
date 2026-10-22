@@ -33,6 +33,7 @@ export interface CustomAsciiOptions {
  */
 export class CustomAsciiRenderer {
   public domElement: HTMLElement;
+  public manifestationDistortion = 0.0;
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D | null;
   private renderer: THREE.WebGLRenderer;
@@ -308,6 +309,14 @@ export class CustomAsciiRenderer {
           }
           charIdx = Math.max(0, Math.min(maxCharIdx, charIdx));
           charToDraw = this.charList[charIdx];
+        }
+
+        // House of Leaves subtle spatial distortion during architectural manifestation
+        if (this.manifestationDistortion > 0 && !skyMask[idx]) {
+          const wave = Math.sin(y * 0.35 + Date.now() * 0.009) * this.manifestationDistortion;
+          if (Math.abs(wave) > 0.45 && (idx % 7 === 0 || Math.random() < 0.08 * this.manifestationDistortion)) {
+            charToDraw = ["░", "▒", "▓", "█", "·", "#", "/", "─", "│"][Math.floor(Math.random() * 9)];
+          }
         }
 
         if (this.useColor) {

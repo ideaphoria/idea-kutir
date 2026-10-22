@@ -1,5 +1,10 @@
 import * as THREE from "three";
 import { HOUSE_ROOMS_3D } from "@/data/house3d";
+import {
+  STAIRCASE_CONFIG,
+  getSpiralFloorElevation,
+  isSpiralWalkable,
+} from "@/data/staircaseGeometry";
 
 export interface ControlTelemetry {
   x: number;
@@ -14,6 +19,8 @@ export class FirstPersonNavigator {
   private camera: THREE.PerspectiveCamera;
   private domElement: HTMLElement;
   public enabled = true;
+  public staircaseActive = false;
+  public playerFloorY = 0.0;
   private moveForward = false;
   private moveBackward = false;
   private moveLeft = false;
@@ -221,6 +228,60 @@ export class FirstPersonNavigator {
   private isPositionWalkable(x: number, z: number): boolean {
     const margin = 0.35;
 
+    // ─── Multi-Level Staircase & Landing Walkability ───
+    if (this.staircaseActive) {
+      // Upper Elevation (Player is climbing or on landing)
+      if (this.playerFloorY >= 1.0) {
+        // Mezzanine Landing at Y = 4.2m
+        if (this.playerFloorY >= 3.8) {
+          const l = STAIRCASE_CONFIG.landing;
+          if (
+            x >= l.minX + margin &&
+            x <= l.maxX - margin &&
+            z >= l.minZ + margin &&
+            z <= l.maxZ - margin
+          ) {
+            // Spindle column obstruction
+            const dx = x - STAIRCASE_CONFIG.centerX;
+            const dz = z - STAIRCASE_CONFIG.centerZ;
+            if (Math.hypot(dx, dz) < STAIRCASE_CONFIG.spindleCollisionRadius) {
+              return false;
+            }
+            return true;
+          }
+        }
+
+        // Spiral Treads
+        if (isSpiralWalkable(x, z, this.playerFloorY)) {
+          return true;
+        }
+
+        // Strictly block walking off elevated treads/landing into open space
+        return false;
+      }
+
+      // Ground Level Elevation (Player near floor level: y < 1.0m)
+      // Allow stepping onto the lower treads of the staircase
+      if (isSpiralWalkable(x, z, this.playerFloorY)) {
+        return true;
+      }
+
+      // Stairwell Alcove Floor at ground level (Z: -20.8 to -22.8, X: -2.55 to 2.55)
+      if (
+        x >= -2.55 + margin &&
+        x <= 2.55 - margin &&
+        z >= -22.8 + margin &&
+        z <= -20.5
+      ) {
+        const dx = x - STAIRCASE_CONFIG.centerX;
+        const dz = z - STAIRCASE_CONFIG.centerZ;
+        if (Math.hypot(dx, dz) < STAIRCASE_CONFIG.spindleCollisionRadius) {
+          return false;
+        }
+        return true;
+      }
+    }
+
     // 1. Exterior Forecourt (Z: 0.5 to 15.0)
     if (x >= -5.5 + margin && x <= 5.5 - margin && z >= 0.5 && z <= 15.0 - margin) {
       return true;
@@ -293,7 +354,11 @@ export class FirstPersonNavigator {
     return false;
   }
 
-  public detectCurrentRoom(x: number, z: number): string {
+  public detectCurrentRoom(x: number, z: number, y?: number): string {
+    const eyeY = y ?? this.camera.position.y;
+    if (eyeY >= 3.5 && z <= -19.5 && z >= -23.5 && x >= -3.0 && x <= 3.0) {
+      return "second_floor_landing";
+    }
     if (z >= 0.5 || (x >= 11.8 && z <= 0.5)) return "exterior";
     if (x <= -2.8 && z <= -11.0 && z >= -25.0) return "living_room";
     if (x >= 2.8 && z >= -13.0 && z <= -3.0) return "study";
@@ -303,6 +368,7 @@ export class FirstPersonNavigator {
 
   public teleportTo(x: number, y: number, z: number, yaw: number) {
     this.camera.position.set(x, y, z);
+    this.playerFloorY = Math.max(0, y - 1.7);
     this.euler.set(0, yaw, 0, "YXZ");
     this.camera.quaternion.setFromEuler(this.euler);
     this.velocity.set(0, 0, 0);
@@ -430,8 +496,34 @@ export class FirstPersonNavigator {
       this.velocity.z = 0;
     }
 
-    // Keep camera at eye-level height
-    currentPos.y = 1.7;
+    // Determine target floor elevation
+    let targetFloorY = 0.0;
+    if (this.staircaseActive) {
+      if (this.playerFloorY >= 3.8) {
+        const l = STAIRCASE_CONFIG.landing;
+        if (
+          currentPos.x >= l.minX &&
+          currentPos.x <= l.maxX &&
+          currentPos.z >= l.minZ &&
+          currentPos.z <= l.maxZ
+        ) {
+          targetFloorY = STAIRCASE_CONFIG.mezzanineFloorY;
+        }
+      }
+      const stairElev = getSpiralFloorElevation(
+        currentPos.x,
+        currentPos.z,
+        this.playerFloorY
+      );
+      if (stairElev !== null) {
+        targetFloorY = stairElev;
+      }
+    }
+
+    // Smoothly interpolate playerFloorY and eye-level camera height (floor + 1.7m)
+    this.playerFloorY += (targetFloorY - this.playerFloorY) * Math.min(1.0, 16.0 * delta);
+    const targetEyeY = this.playerFloorY + 1.7;
+    currentPos.y += (targetEyeY - currentPos.y) * Math.min(1.0, 16.0 * delta);
 
     // Calculate yaw in degrees (0..360)
     const yawDeg = Math.round(((-this.euler.y * 180) / Math.PI) % 360);
@@ -443,7 +535,7 @@ export class FirstPersonNavigator {
         y: currentPos.y,
         z: currentPos.z,
         yawDegrees: normalizedYaw,
-        currentRoomId: this.detectCurrentRoom(currentPos.x, currentPos.z),
+        currentRoomId: this.detectCurrentRoom(currentPos.x, currentPos.z, currentPos.y),
         isLocked: this.isLocked,
       });
     }

@@ -7,12 +7,14 @@ interface HouseMapModalProps {
   currentRoomId: string;
   onSelectRoom: (roomId: string) => void;
   onClose: () => void;
+  staircaseUnlocked?: boolean;
 }
 
 export default function HouseMapModal({
   currentRoomId,
   onSelectRoom,
   onClose,
+  staircaseUnlocked = false,
 }: HouseMapModalProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -74,7 +76,34 @@ export default function HouseMapModal({
               <span>[ CAD_SCHEMATIC.RAW ]</span>
               <span>1:1 SCALE</span>
             </div>
-            <pre className="font-mono text-[10px] sm:text-[11px] leading-tight text-[#38ef7d] overflow-x-auto select-none py-1">{`   ┌───────────────────────────┐         ┌───────────────────────────┐
+            <pre className="font-mono text-[10px] sm:text-[11px] leading-tight text-[#38ef7d] overflow-x-auto select-none py-1">{staircaseUnlocked ? `                                 ┌───────────────────────────┐
+                                 │ [05] SECOND FLOOR LANDING │
+                                 │  · Overlook Mezzanine 4.2m│
+                                 │  · Uncanny Spiral Stair   │
+                                 └─────────────┬─────────────┘
+                                               │ (Spiral Stairs Z: -21.2)
+   ┌───────────────────────────┐               │         ┌───────────────────────────┐
+   │ [02] THE LIVING ROOM      │               │         │ [04] THE ART ROOM / STUDIO│
+   │  · Product & Systems      │               │         │  · 7 Blue Frames (#769EFD)│
+   │  · West Windows & Console │               │         │  · Easel & Relocated Wndw │
+   └─────────────┬─────────────┘               │         └─────────────┬─────────────┘
+                 │ (Doorway Z: -18)            │                       │ (Doorway Z: -18)
+   ┌─────────────┴─────────────────────────────┴───────────────────────┴─────────────┐
+   │ [01] ENTRANCE HALL (AXIAL GALLERY CORRIDOR)                                     │
+   │  · Portrait (West Z: -8) · Blueprint Map (East Z: -12)                          │
+   └─────────────┬─────────────────────────────────────────────────────┬─────────────┘
+                 │ (Doorway Z: -7.5)                                   │
+                 │                                       ┌─────────────┴─────────────┐
+                 │                                       │ [03] THE STUDY / WORKSPACE│
+                 │                                       │  · Terminal & Projects    │
+                 │                                       │  · Executive Walnut Desk  │
+                 │                                       │  · Bookcase Casework      │
+                 │                                       └───────────────────────────┘
+                 │ (Aperture Z: 0)
+   ┌─────────────┴─────────────────────────────────────────────────────┴─────────────┐
+   │ [00] THE GROUNDS APPROACH / EXTERIOR STONE WALKWAY                              │
+   │  · Steps & Facade · East Stone Garden Path                                      │
+   └─────────────────────────────────────────────────────────────────────────────────┘` : `   ┌───────────────────────────┐         ┌───────────────────────────┐
    │ [02] THE LIVING ROOM      │         │ [04] THE ART ROOM / STUDIO│
    │  · Product & Systems      │         │  · 7 Blue Frames (#769EFD)│
    │  · West Windows & Console │         │  · Easel & Relocated Wndw │
@@ -103,13 +132,23 @@ export default function HouseMapModal({
             <div className="text-[11px] font-bold text-[#13265C] mb-2 flex items-center gap-1">
               <span>🚪</span> Fast Navigation — Active Sectors:
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-5 gap-2">
+            <div className={`grid grid-cols-1 sm:grid-cols-3 ${staircaseUnlocked ? "md:grid-cols-6" : "md:grid-cols-5"} gap-2`}>
               {[
                 { id: "exterior", num: "00", name: "The Grounds", note: "Facade & Walkway" },
                 { id: "entrance_hall", num: "01", name: "Entrance Hall", note: "Gallery Corridor" },
                 { id: "living_room", num: "02", name: "Living Room", note: "Primary Chamber" },
                 { id: "study", num: "03", name: "The Study", note: "Office & Terminal" },
                 { id: "art_room", num: "04", name: "The Art Room", note: "Studio & Gallery" },
+                ...(staircaseUnlocked
+                  ? [
+                      {
+                        id: "second_floor_landing",
+                        num: "05",
+                        name: "2nd Fl. Landing",
+                        note: "Mezzanine & Overlook",
+                      },
+                    ]
+                  : []),
               ].map((room) => {
                 const isCurrent = currentRoomId === room.id;
                 return (
