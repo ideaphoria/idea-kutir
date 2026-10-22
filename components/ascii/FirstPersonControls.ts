@@ -2,7 +2,9 @@ import * as THREE from "three";
 import { HOUSE_ROOMS_3D } from "@/data/house3d";
 import {
   STAIRCASE_CONFIG,
+  STAIR_NAVIGATION_CONFIG,
   getSpiralFloorElevation,
+  getSpiralPoint,
   isSpiralWalkable,
 } from "@/data/staircaseGeometry";
 
@@ -15,12 +17,22 @@ export interface ControlTelemetry {
   isLocked: boolean;
 }
 
+export type StairNavState =
+  | "normal"
+  | "guided_ascent"
+  | "arriving_landing"
+  | "guided_upper_ascent";
+
 export class FirstPersonNavigator {
   private camera: THREE.PerspectiveCamera;
   private domElement: HTMLElement;
   public enabled = true;
   public staircaseActive = false;
   public playerFloorY = 0.0;
+  public stairNavState: StairNavState = "normal";
+  public stairProgress = 0.0;
+  private landingArrivalTimer = 0.0;
+  private readonly LANDING_ARRIVAL_DURATION = 0.35;
   private moveForward = false;
   private moveBackward = false;
   private moveLeft = false;
@@ -539,90 +551,248 @@ export class FirstPersonNavigator {
       this.resetMovement();
     }
 
-    // Damping / friction
-    const damping = Math.max(0, 1 - 10.0 * delta);
-    this.velocity.x *= damping;
-    this.velocity.z *= damping;
-
-    // Combine keyboard and analog joystick inputs
-    const keyZ = Number(this.moveForward) - Number(this.moveBackward);
-    const keyX = Number(this.moveRight) - Number(this.moveLeft);
-
-    const totalX = keyX + this.joystickInput.x;
-    const totalZ = keyZ + this.joystickInput.y;
-
-    const inputMagnitude = Math.hypot(totalX, totalZ);
-
-    if (inputMagnitude > 0.01) {
-      const normX = totalX / inputMagnitude;
-      const normZ = totalZ / inputMagnitude;
-      const clampedMag = Math.min(1.0, inputMagnitude);
-
-      const walkSpeed = 38.0; // units / sec^2 acceleration
-      this.velocity.x += normX * walkSpeed * delta * clampedMag;
-      this.velocity.z -= normZ * walkSpeed * delta * clampedMag;
-    }
-
-    // Camera forward and right vectors projected onto XZ plane
-    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
-    forward.y = 0;
-    forward.normalize();
-
-    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
-    right.y = 0;
-    right.normalize();
-
-    // Calculate displacement vector
-    const moveX = (right.x * this.velocity.x - forward.x * this.velocity.z) * delta;
-    const moveZ = (right.z * this.velocity.x - forward.z * this.velocity.z) * delta;
-
     const currentPos = this.camera.position;
 
-    // Test sliding collision: X-axis independently
-    const targetX = currentPos.x + moveX;
-    if (this.isPositionWalkable(targetX, currentPos.z)) {
-      currentPos.x = targetX;
-    } else {
-      this.velocity.x = 0;
-    }
+    // ─────────────────────────────────────────────────────────────
+    // 1. GUIDED SPIRAL STAIRCASE NAVIGATION
+    // ─────────────────────────────────────────────────────────────
+    if (this.stairNavState === "guided_ascent") {
+      // Inputs: forward advances along spiral, backward reverses, sideways ignored
+      const isForward = this.moveForward || this.joystickInput.y > 0.15;
+      const fwdMag = this.moveForward ? 1.0 : Math.min(1.0, this.joystickInput.y);
+      const isBackward = this.moveBackward || this.joystickInput.y < -0.15;
+      const backMag = this.moveBackward ? 1.0 : Math.min(1.0, -this.joystickInput.y);
 
-    // Test sliding collision: Z-axis independently
-    const targetZ = currentPos.z + moveZ;
-    if (this.isPositionWalkable(currentPos.x, targetZ)) {
-      currentPos.z = targetZ;
-    } else {
-      this.velocity.z = 0;
-    }
+      if (isForward) {
+        const deltaProgress = STAIR_NAVIGATION_CONFIG.climbSpeed * delta * fwdMag;
+        this.stairProgress += deltaProgress;
+        const deltaYaw = -deltaProgress * STAIRCASE_CONFIG.stepAngle;
+        this.euler.y += deltaYaw;
+        this.camera.quaternion.setFromEuler(this.euler);
+      } else if (isBackward) {
+        const deltaProgress = STAIR_NAVIGATION_CONFIG.climbSpeed * delta * backMag;
+        this.stairProgress -= deltaProgress;
+        const deltaYaw = deltaProgress * STAIRCASE_CONFIG.stepAngle;
+        this.euler.y += deltaYaw;
+        this.camera.quaternion.setFromEuler(this.euler);
+      }
+      // Releasing movement safely pauses on the current tread
 
-    // Determine target floor elevation
-    let targetFloorY = 0.0;
-    if (this.staircaseActive) {
-      if (this.playerFloorY >= 3.8) {
-        // Second-floor elevation covers landing, hallway, bedroom_1, bedroom_2, and balcony
-        if (
-          (currentPos.x >= -2.4 && currentPos.x <= 2.4 && currentPos.z >= -22.8 && currentPos.z <= -19.5) ||
-          (currentPos.x >= -2.2 && currentPos.x <= 2.2 && currentPos.z >= -19.5 && currentPos.z <= -2.0) ||
-          (currentPos.x >= -9.0 && currentPos.x <= -2.0 && currentPos.z >= -12.0 && currentPos.z <= 0.0) ||
-          (currentPos.x >= -6.8 && currentPos.x <= -3.2 && currentPos.z >= 0.0 && currentPos.z <= 1.8) ||
-          (currentPos.x >= 2.0 && currentPos.x <= 9.2 && currentPos.z >= -12.0 && currentPos.z <= -1.0)
-        ) {
-          targetFloorY = STAIRCASE_CONFIG.mezzanineFloorY;
+      // Check endpoints
+      if (this.stairProgress >= STAIR_NAVIGATION_CONFIG.maxPlayableProgress) {
+        this.stairProgress = STAIR_NAVIGATION_CONFIG.maxPlayableProgress;
+        this.stairNavState = "arriving_landing";
+        this.landingArrivalTimer = 0.0;
+      } else if (this.stairProgress <= 0.0) {
+        // Stepped back down to ground floor: smooth transition into entrance hall
+        this.stairProgress = 0.0;
+        currentPos.x = STAIR_NAVIGATION_CONFIG.groundReturn.x;
+        currentPos.z = STAIR_NAVIGATION_CONFIG.groundReturn.z;
+        this.playerFloorY = STAIR_NAVIGATION_CONFIG.groundReturn.floorY;
+        currentPos.y = STAIR_NAVIGATION_CONFIG.groundReturn.eyeY;
+        this.stairNavState = "normal";
+        this.velocity.set(0, 0, 0);
+      } else {
+        // Continuous authoritative position & height on the spiral
+        const pt = getSpiralPoint(this.stairProgress);
+        currentPos.x = pt.x;
+        currentPos.z = pt.z;
+        this.playerFloorY = pt.y;
+        currentPos.y = this.playerFloorY + 1.70;
+      }
+    } else if (this.stairNavState === "arriving_landing") {
+      // Smoothly move onto landing floor and align camera facing South into hallway
+      this.landingArrivalTimer += delta;
+      const t = Math.min(1.0, this.landingArrivalTimer / this.LANDING_ARRIVAL_DURATION);
+      const easeT = 0.5 - 0.5 * Math.cos(t * Math.PI);
+
+      // Start: Step 20 at (0.0, -20.25). Target: Landing Arrival at (0.0, -19.60)
+      currentPos.x = 0.0;
+      currentPos.z = -20.25 + (STAIR_NAVIGATION_CONFIG.landingArrival.z - (-20.25)) * easeT;
+      this.playerFloorY = STAIR_NAVIGATION_CONFIG.landingArrival.floorY;
+      currentPos.y = STAIR_NAVIGATION_CONFIG.landingArrival.eyeY;
+
+      // Smoothly interpolate yaw toward South (PI)
+      let diff = STAIR_NAVIGATION_CONFIG.landingArrival.yaw - this.euler.y;
+      while (diff > Math.PI) diff -= 2 * Math.PI;
+      while (diff < -Math.PI) diff += 2 * Math.PI;
+      this.euler.y += diff * Math.min(1.0, 10.0 * delta);
+      this.camera.quaternion.setFromEuler(this.euler);
+
+      if (t >= 1.0) {
+        currentPos.z = STAIR_NAVIGATION_CONFIG.landingArrival.z;
+        this.stairNavState = "normal";
+        this.velocity.set(0, 0, 0);
+      }
+    } else if (this.stairNavState === "guided_upper_ascent") {
+      // Continuation steps (21 to 48) into vertical darkness under roof
+      const isForward = this.moveForward || this.joystickInput.y > 0.15;
+      const fwdMag = this.moveForward ? 1.0 : Math.min(1.0, this.joystickInput.y);
+      const isBackward = this.moveBackward || this.joystickInput.y < -0.15;
+      const backMag = this.moveBackward ? 1.0 : Math.min(1.0, -this.joystickInput.y);
+
+      if (isForward) {
+        const deltaProgress = STAIR_NAVIGATION_CONFIG.climbSpeed * delta * fwdMag;
+        this.stairProgress = Math.min(
+          STAIR_NAVIGATION_CONFIG.maxContinuationProgress,
+          this.stairProgress + deltaProgress
+        );
+        const deltaYaw = -deltaProgress * STAIRCASE_CONFIG.stepAngle;
+        this.euler.y += deltaYaw;
+        this.camera.quaternion.setFromEuler(this.euler);
+      } else if (isBackward) {
+        const deltaProgress = STAIR_NAVIGATION_CONFIG.climbSpeed * delta * backMag;
+        this.stairProgress -= deltaProgress;
+        const deltaYaw = deltaProgress * STAIRCASE_CONFIG.stepAngle;
+        this.euler.y += deltaYaw;
+        this.camera.quaternion.setFromEuler(this.euler);
+      }
+
+      if (this.stairProgress <= 21.0) {
+        // Stepped back down to landing level
+        this.stairProgress = 21.0;
+        currentPos.x = 0.0;
+        currentPos.z = -20.2;
+        this.playerFloorY = STAIRCASE_CONFIG.mezzanineFloorY;
+        currentPos.y = this.playerFloorY + 1.70;
+        this.stairNavState = "normal";
+        this.velocity.set(0, 0, 0);
+      } else {
+        const pt = getSpiralPoint(this.stairProgress);
+        currentPos.x = pt.x;
+        currentPos.z = pt.z;
+        this.playerFloorY = pt.y;
+        currentPos.y = this.playerFloorY + 1.70;
+      }
+    } else {
+      // ─────────────────────────────────────────────────────────────
+      // 2. STANDARD FIRST-PERSON WALKING & PHYSICS
+      // ─────────────────────────────────────────────────────────────
+      // Damping / friction
+      const damping = Math.max(0, 1 - 10.0 * delta);
+      this.velocity.x *= damping;
+      this.velocity.z *= damping;
+
+      // Combine keyboard and analog joystick inputs
+      const keyZ = Number(this.moveForward) - Number(this.moveBackward);
+      const keyX = Number(this.moveRight) - Number(this.moveLeft);
+
+      const totalX = keyX + this.joystickInput.x;
+      const totalZ = keyZ + this.joystickInput.y;
+
+      const inputMagnitude = Math.hypot(totalX, totalZ);
+
+      if (inputMagnitude > 0.01) {
+        const normX = totalX / inputMagnitude;
+        const normZ = totalZ / inputMagnitude;
+        const clampedMag = Math.min(1.0, inputMagnitude);
+
+        const walkSpeed = 38.0; // units / sec^2 acceleration
+        this.velocity.x += normX * walkSpeed * delta * clampedMag;
+        this.velocity.z -= normZ * walkSpeed * delta * clampedMag;
+      }
+
+      // Camera forward and right vectors projected onto XZ plane
+      const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
+      forward.y = 0;
+      forward.normalize();
+
+      const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
+      right.y = 0;
+      right.normalize();
+
+      // Calculate displacement vector
+      const moveX = (right.x * this.velocity.x - forward.x * this.velocity.z) * delta;
+      const moveZ = (right.z * this.velocity.x - forward.z * this.velocity.z) * delta;
+
+      // Test sliding collision: X-axis independently
+      const targetX = currentPos.x + moveX;
+      if (this.isPositionWalkable(targetX, currentPos.z)) {
+        currentPos.x = targetX;
+      } else {
+        this.velocity.x = 0;
+      }
+
+      // Test sliding collision: Z-axis independently
+      const targetZ = currentPos.z + moveZ;
+      if (this.isPositionWalkable(currentPos.x, targetZ)) {
+        currentPos.z = targetZ;
+      } else {
+        this.velocity.z = 0;
+      }
+
+      // Determine target floor elevation for free-walking
+      let targetFloorY = 0.0;
+      if (this.staircaseActive) {
+        if (this.playerFloorY >= 3.8) {
+          // Second-floor elevation covers landing, hallway, bedroom_1, bedroom_2, and balcony
+          if (
+            (currentPos.x >= -2.4 && currentPos.x <= 2.4 && currentPos.z >= -22.8 && currentPos.z <= -19.5) ||
+            (currentPos.x >= -2.2 && currentPos.x <= 2.2 && currentPos.z >= -19.5 && currentPos.z <= -2.0) ||
+            (currentPos.x >= -9.0 && currentPos.x <= -2.0 && currentPos.z >= -12.0 && currentPos.z <= 0.0) ||
+            (currentPos.x >= -6.8 && currentPos.x <= -3.2 && currentPos.z >= 0.0 && currentPos.z <= 1.8) ||
+            (currentPos.x >= 2.0 && currentPos.x <= 9.2 && currentPos.z >= -12.0 && currentPos.z <= -1.0)
+          ) {
+            targetFloorY = STAIRCASE_CONFIG.mezzanineFloorY;
+          }
+        }
+        const stairElev = getSpiralFloorElevation(
+          currentPos.x,
+          currentPos.z,
+          this.playerFloorY
+        );
+        if (stairElev !== null) {
+          targetFloorY = stairElev;
         }
       }
-      const stairElev = getSpiralFloorElevation(
-        currentPos.x,
-        currentPos.z,
-        this.playerFloorY
-      );
-      if (stairElev !== null) {
-        targetFloorY = stairElev;
+
+      // Smoothly interpolate playerFloorY and eye-level camera height (floor + 1.7m)
+      this.playerFloorY += (targetFloorY - this.playerFloorY) * Math.min(1.0, 16.0 * delta);
+      const targetEyeY = this.playerFloorY + 1.70;
+      currentPos.y += (targetEyeY - currentPos.y) * Math.min(1.0, 16.0 * delta);
+
+      // Check entry into guided stair zones when walking forward
+      const isWalkingForward = this.moveForward || this.joystickInput.y > 0.2;
+      if (this.staircaseActive && isWalkingForward) {
+        // A. Foot of staircase entry (ground floor)
+        const lz = STAIR_NAVIGATION_CONFIG.lowerEntryZone;
+        if (
+          this.playerFloorY <= lz.maxFloorY &&
+          currentPos.x >= lz.minX &&
+          currentPos.x <= lz.maxX &&
+          currentPos.z >= lz.minZ &&
+          currentPos.z <= lz.maxZ
+        ) {
+          this.stairNavState = "guided_ascent";
+          this.stairProgress = 0.0;
+          this.velocity.set(0, 0, 0);
+          const p0 = getSpiralPoint(0.0);
+          currentPos.x = p0.x;
+          currentPos.z = p0.z;
+          this.playerFloorY = p0.y;
+          currentPos.y = this.playerFloorY + 1.70;
+        }
+
+        // B. Upper continuation stair entry (on second-floor landing)
+        const uz = STAIR_NAVIGATION_CONFIG.upperEntryZone;
+        if (
+          this.playerFloorY >= uz.minFloorY &&
+          currentPos.x >= uz.minX &&
+          currentPos.x <= uz.maxX &&
+          currentPos.z >= uz.minZ &&
+          currentPos.z <= uz.maxZ
+        ) {
+          this.stairNavState = "guided_upper_ascent";
+          this.stairProgress = 21.0;
+          this.velocity.set(0, 0, 0);
+          const p21 = getSpiralPoint(21.0);
+          currentPos.x = p21.x;
+          currentPos.z = p21.z;
+          this.playerFloorY = p21.y;
+          currentPos.y = this.playerFloorY + 1.70;
+        }
       }
     }
-
-    // Smoothly interpolate playerFloorY and eye-level camera height (floor + 1.7m)
-    this.playerFloorY += (targetFloorY - this.playerFloorY) * Math.min(1.0, 16.0 * delta);
-    const targetEyeY = this.playerFloorY + 1.7;
-    currentPos.y += (targetEyeY - currentPos.y) * Math.min(1.0, 16.0 * delta);
 
     // Calculate yaw in degrees (0..360)
     const yawDeg = Math.round(((-this.euler.y * 180) / Math.PI) % 360);

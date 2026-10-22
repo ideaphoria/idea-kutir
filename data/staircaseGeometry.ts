@@ -76,6 +76,79 @@ export const SECOND_FLOOR_CONFIG = {
   },
 } as const;
 
+export const STAIR_NAVIGATION_CONFIG = {
+  // Lower entry zone at foot of staircase (ground floor in front of step 0)
+  lowerEntryZone: {
+    minX: -1.0,
+    maxX: 1.0,
+    minZ: -20.6,
+    maxZ: -19.4,
+    maxFloorY: 0.6,
+  },
+  // Landing arrival coordinates at mezzanine
+  landingArrival: {
+    x: 0.0,
+    z: -19.6,
+    floorY: 4.20,
+    eyeY: 5.90,
+    yaw: Math.PI, // South, facing down the second-floor hallway
+  },
+  // Ground return coordinates when descending to bottom
+  groundReturn: {
+    x: 0.0,
+    z: -19.6,
+    floorY: 0.0,
+    eyeY: 1.70,
+    yaw: Math.PI, // South, facing into the entrance hall
+  },
+  // Upper continuation stair entry zone (on landing, West of spindle)
+  upperEntryZone: {
+    minX: -0.9,
+    maxX: -0.1,
+    minZ: -20.9,
+    maxZ: -20.1,
+    minFloorY: 3.8,
+  },
+  climbSpeed: 2.8, // steps per second
+  maxPlayableProgress: 20.0,
+  maxContinuationProgress: 48.0,
+} as const;
+
+export interface SpiralPoint {
+  x: number;
+  y: number;
+  z: number;
+  theta: number;
+  tangentYaw: number;
+  stepProgress: number;
+}
+
+/**
+ * Authoritative continuous spiral path function.
+ * Evaluates exact 3D coordinates, floor elevation, and tangent heading
+ * derived directly from the same geometry definition as the rendered treads.
+ */
+export function getSpiralPoint(stepProgress: number): SpiralPoint {
+  const clamped = Math.max(0, Math.min(STAIRCASE_CONFIG.totalSteps - 1, stepProgress));
+  const theta = STAIRCASE_CONFIG.startAngle - clamped * STAIRCASE_CONFIG.stepAngle;
+  const x = STAIRCASE_CONFIG.centerX - STAIRCASE_CONFIG.walkingRadius * Math.cos(theta);
+  const z = STAIRCASE_CONFIG.centerZ + STAIRCASE_CONFIG.walkingRadius * Math.sin(theta);
+  const y = (clamped + 1) * STAIRCASE_CONFIG.stepRise;
+
+  let tangentYaw = theta % (2 * Math.PI);
+  if (tangentYaw > Math.PI) tangentYaw -= 2 * Math.PI;
+  if (tangentYaw < -Math.PI) tangentYaw += 2 * Math.PI;
+
+  return {
+    x,
+    y,
+    z,
+    theta,
+    tangentYaw,
+    stepProgress: clamped,
+  };
+}
+
 export interface TreadGeometryData {
   index: number;
   x: number;

@@ -31,6 +31,15 @@ export interface CustomAsciiOptions {
  *    Employs a single preformatted monospaced <pre> block updated via textContent,
  *    achieving rock-solid 60 FPS without table layout thrashing.
  */
+export const ASCII_FONT_METRICS = {
+  originalBaselinePt: 9.0,
+  targetBaselinePt: 7.0,
+  reductionPt: 2.0,
+  targetHeightPx: 7.0 * (96 / 72), // 9.333333 px at 96 DPI
+  targetWidthPx: (7.0 * (96 / 72)) * (6.8 / 12.0), // 5.288889 px at 96 DPI
+  aspectRatio: 6.8 / 12.0, // 0.566667
+} as const;
+
 export class CustomAsciiRenderer {
   public domElement: HTMLElement;
   public manifestationDistortion = 0.0;
@@ -119,12 +128,20 @@ export class CustomAsciiRenderer {
 
     this.renderer.setSize(w, h);
 
-    // Character aspect ratio compensation:
-    // Monospace chars are ~0.55 width-to-height (e.g. 6.6px wide by 12px high).
-    // Grid resolution is scaled according to resolution factor.
-    const charCellW = 6.8 / (this.resolution * 4.6);
-    const charCellH = 12.0 / (this.resolution * 4.6);
+    // ─── Fixed 7 pt Target Baseline (Exact 2 pt reduction from 9 pt baseline) ───
+    // At standard 96 DPI: 1 pt = 96 / 72 px = 4 / 3 px (~1.333333 px).
+    // Original baseline: 9.0 pt = 12.0 px height, 6.8 px width (aspect ratio 6.8 / 12.0 = 0.56667).
+    // Target baseline: 7.0 pt = 9.333333 px height (reduction of exactly 2.0 pt = 2.666667 px).
+    const TARGET_FONT_PT = ASCII_FONT_METRICS.targetBaselinePt;
+    const TARGET_FONT_PX = ASCII_FONT_METRICS.targetHeightPx; // 9.333333 px
+    const TARGET_CHAR_W_PX = ASCII_FONT_METRICS.targetWidthPx; // 5.288889 px
 
+    // Grid resolution scaling from options (0.22 * 4.6 ~ 1.012 at default)
+    const scaleFactor = this.resolution * 4.6;
+    const charCellW = TARGET_CHAR_W_PX / scaleFactor;
+    const charCellH = TARGET_FONT_PX / scaleFactor;
+
+    // Calculate grid dimensions directly around fixed 7 pt target baseline
     this.cols = Math.max(30, Math.floor(w / charCellW));
     this.rows = Math.max(20, Math.floor(h / charCellH));
 
@@ -135,16 +152,15 @@ export class CustomAsciiRenderer {
       this.offCtx.imageSmoothingQuality = "high";
     }
 
-    const fontSizePx = Math.max(7, Math.round((h / this.rows) * 0.92));
-    const lineHeightPx = Math.max(8, Math.round(h / this.rows));
-
-    // Resize canvas and compute per‑cell size
+    // Flush cell dimensions covering the viewport with zero gaps
     this.canvas.width = w;
     this.canvas.height = h;
     this.cellW = w / this.cols;
     this.cellH = h / this.rows;
+
+    // Fixed font size: 7 pt (9.33 px) consistently across desktop and mobile viewports
     if (this.ctx) {
-      this.ctx.font = `${fontSizePx}px monospace`;
+      this.ctx.font = `${TARGET_FONT_PX.toFixed(2)}px monospace`;
       this.ctx.textBaseline = "top";
     }
   }
