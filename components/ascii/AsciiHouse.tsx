@@ -15,6 +15,8 @@ import DialogueBox from "./DialogueBox";
 import {
   HOST_FIRST_MEETING_LINES,
   HOST_REFUSAL_RESPONSE_LINE,
+  HOST_CAT_PORTRAIT_SCOLD_LINE,
+  HOST_KUNDAPURA_POST_VIEW_LINE,
   getRandomHostName,
   getHostNameConfirmedDialogue,
   getHostNameRefusedDialogue,
@@ -148,6 +150,9 @@ export default function AsciiHouse() {
         sessionStorage.removeItem("house_profile_activation_count");
         sessionStorage.removeItem("house_study_computer_first_encounter");
         sessionStorage.removeItem("house_study_computer_post_dialogue");
+        sessionStorage.removeItem("house_portrait_scold_shown");
+        sessionStorage.removeItem("house_portrait_interacted");
+        sessionStorage.removeItem("house_kundapura_dialogue_shown");
       } catch {}
     }
   }, []);
@@ -262,6 +267,53 @@ export default function AsciiHouse() {
     }
     return false;
   });
+
+  // Master of the House Cat Portrait Proximity Scold Tracking
+  const [hasInteractedWithPortrait, setHasInteractedWithPortrait] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        if (sessionStorage.getItem("house_portrait_interacted") === "true") return true;
+        const count = sessionStorage.getItem("house_profile_activation_count");
+        if (count && parseInt(count, 10) > 0) return true;
+      } catch {}
+    }
+    return false;
+  });
+  const [hasShownPortraitScold, setHasShownPortraitScold] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return sessionStorage.getItem("house_portrait_scold_shown") === "true";
+      } catch {}
+    }
+    return false;
+  });
+  const [isPortraitScoldQueued, setIsPortraitScoldQueued] = useState<boolean>(false);
+  const portraitScoldTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hasSpawnedOutsideRef = useRef<boolean>(false);
+  const hasInteractedWithPortraitRef = useRef(hasInteractedWithPortrait);
+  useEffect(() => {
+    hasInteractedWithPortraitRef.current = hasInteractedWithPortrait;
+  }, [hasInteractedWithPortrait]);
+  const hasShownPortraitScoldRef = useRef(hasShownPortraitScold);
+  useEffect(() => {
+    hasShownPortraitScoldRef.current = hasShownPortraitScold;
+  }, [hasShownPortraitScold]);
+
+  // Master of the House Kundapura Field Notes Dialogue Tracking
+  const [hasShownKundapuraDialogue, setHasShownKundapuraDialogue] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return sessionStorage.getItem("house_kundapura_dialogue_shown") === "true";
+      } catch {}
+    }
+    return false;
+  });
+  const [isKundapuraDialogueQueued, setIsKundapuraDialogueQueued] = useState<boolean>(false);
+  const hasOpenedKundapuraProjectRef = useRef<boolean>(false);
+  const hasShownKundapuraDialogueRef = useRef<boolean>(hasShownKundapuraDialogue);
+  useEffect(() => {
+    hasShownKundapuraDialogueRef.current = hasShownKundapuraDialogue;
+  }, [hasShownKundapuraDialogue]);
 
   // Interactive Half-Open Bedroom Doors References & Angles
   const doorsRef = useRef<{
@@ -635,6 +687,90 @@ export default function AsciiHouse() {
     });
   }, []);
 
+  // Master of the House Cat Portrait Proximity Scold Dialogue
+  const triggerPortraitScoldDialogue = useCallback(() => {
+    if (hasInteractedWithPortraitRef.current || hasShownPortraitScoldRef.current) return;
+
+    if (navigatorRef.current) {
+      navigatorRef.current.exitLock();
+      navigatorRef.current.resetMovement();
+    }
+
+    setDialogueAppearanceCount((prev) => {
+      const next = prev + 1;
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem("house_dialogue_appearance_count", next.toString());
+        } catch {}
+      }
+      return next;
+    });
+
+    setHostDialogueConfig({
+      lines: [HOST_CAT_PORTRAIT_SCOLD_LINE],
+      title: "Master of the House",
+      confirmButtonText: "Fine, I'll look.",
+      showCancelButton: false,
+      hideCloseButton: true,
+      instantText: true,
+      allowBackdropDismiss: true,
+      onProceed: () => {
+        setHostDialogueConfig(null);
+      },
+    });
+
+    setHasShownPortraitScold(true);
+    hasShownPortraitScoldRef.current = true;
+    setIsPortraitScoldQueued(false);
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.setItem("house_portrait_scold_shown", "true");
+      } catch {}
+    }
+  }, []);
+
+  // Master of the House Kundapura Field Notes Dialogue
+  const triggerKundapuraPostViewDialogue = useCallback(() => {
+    if (hasShownKundapuraDialogueRef.current) return;
+
+    if (navigatorRef.current) {
+      navigatorRef.current.exitLock();
+      navigatorRef.current.resetMovement();
+    }
+
+    setDialogueAppearanceCount((prev) => {
+      const next = prev + 1;
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem("house_dialogue_appearance_count", next.toString());
+        } catch {}
+      }
+      return next;
+    });
+
+    setHostDialogueConfig({
+      lines: [HOST_KUNDAPURA_POST_VIEW_LINE],
+      title: "Master of the House",
+      confirmButtonText: "Whatever",
+      showCancelButton: false,
+      hideCloseButton: true,
+      instantText: true,
+      allowBackdropDismiss: true,
+      onProceed: () => {
+        setHostDialogueConfig(null);
+      },
+    });
+
+    setHasShownKundapuraDialogue(true);
+    hasShownKundapuraDialogueRef.current = true;
+    setIsKundapuraDialogueQueued(false);
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.setItem("house_kundapura_dialogue_shown", "true");
+      } catch {}
+    }
+  }, []);
+
   const handleInteract = useCallback(() => {
     if (introStage !== "playing" || !!hostDialogueConfig) return;
 
@@ -672,6 +808,20 @@ export default function AsciiHouse() {
     });
 
     if (target.id === "obj-hallway-portrait") {
+      // Clear pending proximity scold timer and cancel scold permanently
+      if (portraitScoldTimerRef.current) {
+        clearTimeout(portraitScoldTimerRef.current);
+        portraitScoldTimerRef.current = null;
+      }
+      setHasInteractedWithPortrait(true);
+      hasInteractedWithPortraitRef.current = true;
+      setIsPortraitScoldQueued(false);
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem("house_portrait_interacted", "true");
+        } catch {}
+      }
+
       const nextCount = profileActivationCount + 1;
       setProfileActivationCount(nextCount);
       if (typeof window !== "undefined") {
@@ -714,6 +864,13 @@ export default function AsciiHouse() {
       } else {
         setIsProjectDirectoryOpen(true);
       }
+    } else if (target.id === "obj-living-dining-meals" || target.id.startsWith("obj-living-dining-meal-")) {
+      const url = target.destinationUrl || "https://app.notion.com/p/Notes-from-the-field-Kundapura-30962b381c968015bff4f0c11437c774";
+      window.open(url, "_blank", "noopener,noreferrer");
+      if (!hasShownKundapuraDialogueRef.current) {
+        hasOpenedKundapuraProjectRef.current = true;
+      }
+      return;
     } else if (target.id.startsWith("gallery-frame-")) {
       const frameConfig = getGalleryFrame(target.id);
       if (frameConfig?.destinationUrl) {
@@ -816,6 +973,12 @@ export default function AsciiHouse() {
       setInspectedObject(null);
       setIsProfileOpen(false);
       setIsMapOpen(false);
+
+      if (objectId === "obj-hallway-portrait") {
+        setHasInteractedWithPortrait(true);
+        hasInteractedWithPortraitRef.current = true;
+        setIsPortraitScoldQueued(false);
+      }
 
       if (introStage !== "playing") {
         if (DEBUG_DIALOGUE) {
@@ -947,6 +1110,130 @@ export default function AsciiHouse() {
       navigatorRef.current.exitLock();
     }
   }, [hostDialogueConfig?.hasNameInput, hostDialogueConfig?.allowBackdropDismiss]);
+
+  const isAnyModalOpenRef = useRef(isAnyModalOpen);
+  useEffect(() => {
+    isAnyModalOpenRef.current = isAnyModalOpen;
+  }, [isAnyModalOpen]);
+
+  // Clean up portrait scold timer on unmount
+  useEffect(() => {
+    return () => {
+      if (portraitScoldTimerRef.current) {
+        clearTimeout(portraitScoldTimerRef.current);
+        portraitScoldTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  // Proximity detection for cat portrait scold in Entrance Hall
+  useEffect(() => {
+    if (introStage !== "playing") return;
+    if (hasInteractedWithPortraitRef.current || hasShownPortraitScoldRef.current) return;
+
+    const PORTRAIT_X = -2.51;
+    const PORTRAIT_Z = -8.0;
+    const PROXIMITY_RADIUS = 2.8;
+
+    const distToPortrait = Math.hypot(telemetry.x - PORTRAIT_X, telemetry.z - PORTRAIT_Z);
+
+    // If player is outside proximity radius or outside entrance hall, mark hasSpawnedOutside
+    if (distToPortrait > PROXIMITY_RADIUS || telemetry.currentRoomId !== "entrance_hall") {
+      hasSpawnedOutsideRef.current = true;
+    }
+
+    // Trigger grace timer when entering proximity zone
+    if (
+      telemetry.currentRoomId === "entrance_hall" &&
+      telemetry.y < 3.5 &&
+      distToPortrait <= PROXIMITY_RADIUS &&
+      hasSpawnedOutsideRef.current &&
+      !hasInteractedWithPortrait &&
+      !hasShownPortraitScold &&
+      !isPortraitScoldQueued &&
+      portraitScoldTimerRef.current === null
+    ) {
+      portraitScoldTimerRef.current = setTimeout(() => {
+        portraitScoldTimerRef.current = null;
+        if (hasInteractedWithPortraitRef.current || hasShownPortraitScoldRef.current) {
+          return;
+        }
+        if (isAnyModalOpenRef.current) {
+          setIsPortraitScoldQueued(true);
+        } else {
+          triggerPortraitScoldDialogue();
+        }
+      }, 2000);
+    }
+  }, [
+    telemetry.x,
+    telemetry.z,
+    telemetry.y,
+    telemetry.currentRoomId,
+    introStage,
+    hasInteractedWithPortrait,
+    hasShownPortraitScold,
+    isPortraitScoldQueued,
+    triggerPortraitScoldDialogue,
+  ]);
+
+  // Trigger queued cat portrait scold once modals and dialogues are dismissed
+  useEffect(() => {
+    if (
+      !isAnyModalOpen &&
+      isPortraitScoldQueued &&
+      !hasInteractedWithPortrait &&
+      !hasShownPortraitScold
+    ) {
+      triggerPortraitScoldDialogue();
+    }
+  }, [
+    isAnyModalOpen,
+    isPortraitScoldQueued,
+    hasInteractedWithPortrait,
+    hasShownPortraitScold,
+    triggerPortraitScoldDialogue,
+  ]);
+
+  // Trigger Master of the House dialogue when visitor returns to house after viewing Kundapura Notion project
+  useEffect(() => {
+    const handleReturnToHouse = () => {
+      if (document.visibilityState === "visible" && hasOpenedKundapuraProjectRef.current) {
+        hasOpenedKundapuraProjectRef.current = false;
+        if (hasShownKundapuraDialogueRef.current) return;
+
+        if (isAnyModalOpenRef.current) {
+          setIsKundapuraDialogueQueued(true);
+        } else {
+          triggerKundapuraPostViewDialogue();
+        }
+      }
+    };
+
+    window.addEventListener("focus", handleReturnToHouse);
+    document.addEventListener("visibilitychange", handleReturnToHouse);
+
+    return () => {
+      window.removeEventListener("focus", handleReturnToHouse);
+      document.removeEventListener("visibilitychange", handleReturnToHouse);
+    };
+  }, [triggerKundapuraPostViewDialogue]);
+
+  // Trigger queued Kundapura dialogue once active modals are dismissed
+  useEffect(() => {
+    if (
+      !isAnyModalOpen &&
+      isKundapuraDialogueQueued &&
+      !hasShownKundapuraDialogue
+    ) {
+      triggerKundapuraPostViewDialogue();
+    }
+  }, [
+    isAnyModalOpen,
+    isKundapuraDialogueQueued,
+    hasShownKundapuraDialogue,
+    triggerKundapuraPostViewDialogue,
+  ]);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -2458,9 +2745,337 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
     aquariumLight.position.set(-13.50, 1.35, -24.35);
     scene.add(aquariumLight);
 
+    // 6. Four-Person Dining Arrangement & 3D Banana-Leaf Meals (obj-living-dining-meals across from Aquarium)
+    const diningWoodMaterial = new THREE.MeshLambertMaterial({ color: 0x443022 }); // Dark teak dining table
+    const diningApronMaterial = new THREE.MeshLambertMaterial({ color: 0x322216 });
+    const diningTrimMaterial = interactiveCore; // Signature #769EFD reveal rim
+    const diningChairWoodMaterial = new THREE.MeshLambertMaterial({ color: 0x503828 });
+    const chairCushionMaterial = new THREE.MeshLambertMaterial({ color: 0x3e5270 }); // Muted blue upholstered seat
+    const terracottaPotMat = new THREE.MeshLambertMaterial({ color: 0x8a3818 });      // Coastal terracotta serving pot
+    const terracottaLidMat = new THREE.MeshLambertMaterial({ color: 0xad4d22 });
+
+    // Authentic Food & Meal Materials (matched to reference photograph)
+    const bananaLeafMat = new THREE.MeshLambertMaterial({ color: 0x468e28 });     // Vibrant fresh banana leaf
+    const leafMidribMat = new THREE.MeshLambertMaterial({ color: 0x7ab03a });     // Pale yellow-green leaf midrib
+    const leafShadowMat = new THREE.MeshLambertMaterial({ color: 0x22160d });     // Leaf contact shadow
+    const boiledRiceMat = new THREE.MeshLambertMaterial({ color: 0xf6f5ef });     // Boiled white rice grains
+    const fishCurryMat = new THREE.MeshLambertMaterial({ color: 0xd97014 });      // Golden-orange coconut fish saaru
+    const curryGlowMat = new THREE.MeshLambertMaterial({ color: 0xeb8d1e });      // Warm amber curry oil sheen
+    const fishFryCrustMat = new THREE.MeshLambertMaterial({ color: 0x4a1408 });   // Roasted chili masala crust
+    const fishFryCharMat = new THREE.MeshLambertMaterial({ color: 0x200803 });    // Charred crispy fish skin
+    const fishFryChiliMat = new THREE.MeshLambertMaterial({ color: 0x88240c });   // Spicy red chili glaze
+    const beetrootPalyaMat = new THREE.MeshLambertMaterial({ color: 0x7a0f28 });  // Deep ruby magenta beetroot stir-fry
+    const beetrootFleckMat = new THREE.MeshLambertMaterial({ color: 0x9e1a3c });  // Grated coconut & beetroot flecks
+    const mangoPickleMat = new THREE.MeshLambertMaterial({ color: 0xd04408 });    // Glossy spicy red-orange pickle
+    const fishCrispMat = new THREE.MeshLambertMaterial({ color: 0x9c764e });      // Crispy fried fish snippet
+    const steelTumblerMat = new THREE.MeshLambertMaterial({ color: 0xa4b0b8 });   // Stainless steel water tumbler
+    const blueTumblerMat = new THREE.MeshLambertMaterial({ color: 0x1b5abd });    // Coastal blue plastic tumbler
+    const buttermilkMat = new THREE.MeshLambertMaterial({ color: 0xf4f6f2 });     // Refreshing white buttermilk (majjige)
+
+    // Table Center: X = -13.60, Z = -20.50 (Directly across from aquarium at X = -13.50, Z = -24.40)
+    // Enlarged to realistic 4-adult dining proportions: 2.10m (X) x 1.20m (Z)
+    const tableX = -13.60;
+    const tableZ = -20.50;
+    const tableTopY = 0.76;
+
+    // Floor contact shadow beneath enlarged dining set
+    addBox(2.40, 0.005, 1.50, tableX, 0.002, tableZ, contactShadowMaterial);
+
+    // 4 Solid timber table legs (0.08m x 0.74m x 0.08m)
+    addBox(0.08, 0.74, 0.08, tableX - 0.93, 0.37, tableZ - 0.48, diningWoodMaterial);
+    addBox(0.08, 0.74, 0.08, tableX + 0.93, 0.37, tableZ - 0.48, diningWoodMaterial);
+    addBox(0.08, 0.74, 0.08, tableX - 0.93, 0.37, tableZ + 0.48, diningWoodMaterial);
+    addBox(0.08, 0.74, 0.08, tableX + 0.93, 0.37, tableZ + 0.48, diningWoodMaterial);
+
+    // Under-table structural apron rails
+    addBox(1.86, 0.08, 0.045, tableX, 0.70, tableZ - 0.48, diningApronMaterial);
+    addBox(1.86, 0.08, 0.045, tableX, 0.70, tableZ + 0.48, diningApronMaterial);
+    addBox(0.045, 0.08, 0.96, tableX - 0.93, 0.70, tableZ, diningApronMaterial);
+    addBox(0.045, 0.08, 0.96, tableX + 0.93, 0.70, tableZ, diningApronMaterial);
+
+    // Tabletop reveal trim in signature interactive blue #769EFD
+    addBox(2.12, 0.015, 1.22, tableX, tableTopY - 0.02, tableZ, diningTrimMaterial);
+
+    // Primary solid timber dining tabletop (2.10m x 1.20m, height 0.76m)
+    addBox(2.10, 0.045, 1.20, tableX, tableTopY, tableZ, diningWoodMaterial);
+
+    // Center Terracotta Fish Saaru Sharing Pot on table
+    const potBase = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.09, 0.065, 16), terracottaPotMat);
+    potBase.position.set(tableX, tableTopY + 0.055, tableZ);
+    const potRim = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.12, 0.015, 16), terracottaLidMat);
+    potRim.position.set(tableX, tableTopY + 0.09, tableZ);
+    const potCurry = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.10, 0.01, 14), fishCurryMat);
+    potCurry.position.set(tableX, tableTopY + 0.085, tableZ);
+    houseGroup.add(potBase, potRim, potCurry);
+
+    // Four Full-Sized Adult Dining Chairs (Proper seat height 0.46m, total backrest height 0.94m)
+    const createDiningChair = (cx: number, cz: number, rotY: number) => {
+      const chairGroup = new THREE.Group();
+      chairGroup.position.set(cx, 0, cz);
+      chairGroup.rotation.y = rotY;
+
+      // Contact shadow beneath chair
+      const shadowMesh = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.005, 0.52), contactShadowMaterial);
+      shadowMesh.position.set(0, 0.002, 0);
+      chairGroup.add(shadowMesh);
+
+      // 4 Sturdy Chair legs (height 0.435m)
+      const legGeo = new THREE.BoxGeometry(0.042, 0.435, 0.042);
+      const leg1 = new THREE.Mesh(legGeo, diningChairWoodMaterial);
+      leg1.position.set(-0.19, 0.217, -0.19);
+      const leg2 = new THREE.Mesh(legGeo, diningChairWoodMaterial);
+      leg2.position.set(0.19, 0.217, -0.19);
+      const leg3 = new THREE.Mesh(legGeo, diningChairWoodMaterial);
+      leg3.position.set(-0.19, 0.217, 0.19);
+      const leg4 = new THREE.Mesh(legGeo, diningChairWoodMaterial);
+      leg4.position.set(0.19, 0.217, 0.19);
+      chairGroup.add(leg1, leg2, leg3, leg4);
+
+      // Lower leg stretcher rails
+      const braceX = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.025, 0.025), diningChairWoodMaterial);
+      braceX.position.set(0, 0.12, -0.19);
+      const braceX2 = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.025, 0.025), diningChairWoodMaterial);
+      braceX2.position.set(0, 0.12, 0.19);
+      const braceZ = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.025, 0.38), diningChairWoodMaterial);
+      braceZ.position.set(-0.19, 0.12, 0);
+      const braceZ2 = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.025, 0.38), diningChairWoodMaterial);
+      braceZ2.position.set(0.19, 0.12, 0);
+      chairGroup.add(braceX, braceX2, braceZ, braceZ2);
+
+      // Chair timber seat frame
+      const seatFrame = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.035, 0.48), diningChairWoodMaterial);
+      seatFrame.position.set(0, 0.435, 0);
+      chairGroup.add(seatFrame);
+
+      // Upholstered seat cushion (comfortably at height 0.465m)
+      const seatMesh = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.045, 0.46), chairCushionMaterial);
+      seatMesh.position.set(0, 0.465, 0);
+      chairGroup.add(seatMesh);
+
+      // Full-height backrest upright stiles (reaching 0.94m)
+      const stileGeo = new THREE.BoxGeometry(0.04, 0.50, 0.035);
+      const stileL = new THREE.Mesh(stileGeo, diningChairWoodMaterial);
+      stileL.position.set(-0.19, 0.69, 0.20);
+      const stileR = new THREE.Mesh(stileGeo, diningChairWoodMaterial);
+      stileR.position.set(0.19, 0.69, 0.20);
+      chairGroup.add(stileL, stileR);
+
+      // Top curved/arched crest rail
+      const crestRail = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.08, 0.03), diningChairWoodMaterial);
+      crestRail.position.set(0, 0.90, 0.20);
+      chairGroup.add(crestRail);
+
+      // Ergonomic middle lumbar slat
+      const midRail = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.055, 0.02), diningChairWoodMaterial);
+      midRail.position.set(0, 0.74, 0.20);
+      chairGroup.add(midRail);
+
+      // Lower back support rail
+      const lowRail = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.04, 0.02), diningChairWoodMaterial);
+      lowRail.position.set(0, 0.58, 0.20);
+      chairGroup.add(lowRail);
+
+      // Vertical back spindles
+      const spindleGeo = new THREE.BoxGeometry(0.022, 0.26, 0.018);
+      const spindle1 = new THREE.Mesh(spindleGeo, diningChairWoodMaterial);
+      spindle1.position.set(-0.07, 0.74, 0.20);
+      const spindle2 = new THREE.Mesh(spindleGeo, diningChairWoodMaterial);
+      spindle2.position.set(0.07, 0.74, 0.20);
+      chairGroup.add(spindle1, spindle2);
+
+      houseGroup.add(chairGroup);
+    };
+
+    // Four dining chairs: one chair per side naturally positioned around the table
+    // North Chair (facing South towards table)
+    createDiningChair(tableX, tableZ - 0.78, Math.PI);
+    // South Chair (facing North towards table and aquarium)
+    createDiningChair(tableX, tableZ + 0.78, 0);
+    // West Chair (facing East towards table)
+    createDiningChair(tableX - 1.22, tableZ, Math.PI / 2);
+    // East Chair (facing West towards table)
+    createDiningChair(tableX + 1.22, tableZ, -Math.PI / 2);
+
+    // Four Banana-Leaf Meals (modeled accurately after reference photograph, scaled to adult proportions)
+    const mealHitMeshes: THREE.Mesh[] = [];
+
+    const createBananaLeafMeal = (
+      px: number,
+      pz: number,
+      rotY: number,
+      fishOnTopRight: boolean,
+      mealId: string
+    ) => {
+      const mealGroup = new THREE.Group();
+      mealGroup.position.set(px, tableTopY + 0.023, pz);
+      mealGroup.rotation.y = rotY;
+
+      // 1. Banana leaf contact shadow & leaf blade (0.45m x 0.31m adult plate)
+      const leafShadow = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.002, 0.32), leafShadowMat);
+      leafShadow.position.set(0, 0.001, 0);
+      mealGroup.add(leafShadow);
+
+      const leafBlade = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.005, 0.31), bananaLeafMat);
+      leafBlade.position.set(0, 0.004, 0);
+      leafBlade.userData = {
+        interactive: true,
+        objId: mealId,
+        destinationUrl: "https://app.notion.com/p/Notes-from-the-field-Kundapura-30962b381c968015bff4f0c11437c774",
+      };
+      mealGroup.add(leafBlade);
+      mealHitMeshes.push(leafBlade);
+
+      // Independent Raycast Hitbox for this specific banana-leaf plate
+      const mealIndividualHitbox = new THREE.Mesh(
+        new THREE.BoxGeometry(0.48, 0.16, 0.34),
+        new THREE.MeshBasicMaterial({ visible: false })
+      );
+      mealIndividualHitbox.position.set(0, 0.08, 0);
+      mealIndividualHitbox.userData = {
+        interactive: true,
+        objId: mealId,
+        destinationUrl: "https://app.notion.com/p/Notes-from-the-field-Kundapura-30962b381c968015bff4f0c11437c774",
+      };
+      mealGroup.add(mealIndividualHitbox);
+      mealHitMeshes.push(mealIndividualHitbox);
+
+      // Banana leaf pale midrib running through the center
+      const leafMidrib = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.007, 0.015), leafMidribMat);
+      leafMidrib.position.set(0, 0.007, 0);
+      mealGroup.add(leafMidrib);
+
+      // 2. Central boiled rice mound with depressed crater
+      const riceMound = new THREE.Mesh(new THREE.CylinderGeometry(0.098, 0.105, 0.034, 16), boiledRiceMat);
+      riceMound.position.set(-0.015, 0.021, 0);
+      mealGroup.add(riceMound);
+
+      // Irregular rice grain clusters around perimeter giving volume & organic texture
+      const clusterGeo = new THREE.BoxGeometry(0.032, 0.018, 0.028);
+      for (let a = 0; a < 8; a++) {
+        const ang = (a / 8) * Math.PI * 2;
+        const rCluster = new THREE.Mesh(clusterGeo, boiledRiceMat);
+        rCluster.position.set(
+          -0.015 + Math.cos(ang) * 0.088,
+          0.025,
+          Math.sin(ang) * 0.080
+        );
+        rCluster.rotation.y = ang + 0.3;
+        mealGroup.add(rCluster);
+      }
+
+      // Coastal Coconut Fish Curry (Saaru) pooled inside the depressed rice crater
+      const curryPool = new THREE.Mesh(new THREE.CylinderGeometry(0.050, 0.044, 0.014, 14), fishCurryMat);
+      curryPool.position.set(-0.015, 0.033, 0);
+      mealGroup.add(curryPool);
+
+      const currySheen = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.028, 0.005, 12), curryGlowMat);
+      currySheen.position.set(-0.013, 0.039, 0.002);
+      mealGroup.add(currySheen);
+
+      // 3. Whole fried fish (Mackerel / Bangude Tawa Fry) with chili masala crust & char
+      const fishGroup = new THREE.Group();
+      if (fishOnTopRight) {
+        fishGroup.position.set(0.090, 0.014, -0.075);
+        fishGroup.rotation.y = -0.45;
+      } else {
+        fishGroup.position.set(0.030, 0.014, 0.098);
+        fishGroup.rotation.y = 1.35;
+      }
+
+      // Torso & head
+      const fishBody = new THREE.Mesh(new THREE.BoxGeometry(0.145, 0.024, 0.038), fishFryCrustMat);
+      fishBody.position.set(0, 0.012, 0);
+      // Tapered snout & tail
+      const fishHead = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.020, 0.026), fishFryCharMat);
+      fishHead.position.set(0.075, 0.010, 0);
+      const fishTail = new THREE.Mesh(new THREE.BoxGeometry(0.030, 0.012, 0.022), fishFryCharMat);
+      fishTail.position.set(-0.075, 0.010, 0);
+      // Charred crust highlights & chili masala sheen
+      const fishCharStreak = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.008, 0.028), fishFryCharMat);
+      fishCharStreak.position.set(0.012, 0.023, 0);
+      const fishChiliGlaze = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.006, 0.022), fishFryChiliMat);
+      fishChiliGlaze.position.set(-0.024, 0.023, 0.005);
+
+      fishGroup.add(fishBody, fishHead, fishTail, fishCharStreak, fishChiliGlaze);
+      mealGroup.add(fishGroup);
+
+      // 4. Beetroot Palya (Ruby-magenta grated stir-fry)
+      const beetrootGroup = new THREE.Group();
+      if (fishOnTopRight) {
+        beetrootGroup.position.set(0.048, 0.016, 0.084);
+      } else {
+        beetrootGroup.position.set(-0.13, 0.016, -0.072);
+      }
+      const beetMound = new THREE.Mesh(new THREE.BoxGeometry(0.058, 0.020, 0.050), beetrootPalyaMat);
+      const beetFleck1 = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.012, 0.024), beetrootFleckMat);
+      beetFleck1.position.set(0.015, 0.010, -0.008);
+      const beetFleck2 = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.010, 0.020), beetrootFleckMat);
+      beetFleck2.position.set(-0.012, 0.010, 0.010);
+      beetrootGroup.add(beetMound, beetFleck1, beetFleck2);
+      mealGroup.add(beetrootGroup);
+
+      // 5. Spicy Mango / Lemon Pickle (Uppinakayi)
+      const pickleMesh = new THREE.Mesh(new THREE.BoxGeometry(0.030, 0.014, 0.025), mangoPickleMat);
+      if (fishOnTopRight) {
+        pickleMesh.position.set(-0.095, 0.012, 0.072);
+      } else {
+        pickleMesh.position.set(-0.145, 0.012, 0.012);
+      }
+      mealGroup.add(pickleMesh);
+
+      // 6. Fried Fish Crispy Side / Anchovy Piece
+      const crispMesh = new THREE.Mesh(new THREE.BoxGeometry(0.044, 0.010, 0.022), fishCrispMat);
+      if (fishOnTopRight) {
+        crispMesh.position.set(-0.12, 0.010, -0.084);
+        crispMesh.rotation.y = 0.6;
+      } else {
+        crispMesh.position.set(0.145, 0.010, -0.048);
+        crispMesh.rotation.y = -0.4;
+      }
+      mealGroup.add(crispMesh);
+
+      houseGroup.add(mealGroup);
+    };
+
+    // Four individual banana-leaf servings on the table cleanly positioned in front of each dining position
+    // Meal 1 (North Diner, facing South)
+    createBananaLeafMeal(tableX, tableZ - 0.34, 0, true, "obj-living-dining-meal-1");
+    // Meal 2 (South Diner, facing North towards aquarium)
+    createBananaLeafMeal(tableX, tableZ + 0.34, Math.PI, false, "obj-living-dining-meal-2");
+    // Meal 3 (West Diner, facing East towards table)
+    createBananaLeafMeal(tableX - 0.62, tableZ, -Math.PI / 2, false, "obj-living-dining-meal-3");
+    // Meal 4 (East Diner, facing West towards table)
+    createBananaLeafMeal(tableX + 0.62, tableZ, Math.PI / 2, true, "obj-living-dining-meal-4");
+
+    // Table Tumblers (Cool Buttermilk / Majjige) placed to the right of each place setting
+    const createTumbler = (tx: number, tz: number, isSteel: boolean) => {
+      const tumblerGroup = new THREE.Group();
+      tumblerGroup.position.set(tx, tableTopY + 0.023, tz);
+
+      const glassGeo = new THREE.CylinderGeometry(0.038, 0.030, 0.12, 14);
+      const glassMesh = new THREE.Mesh(glassGeo, isSteel ? steelTumblerMat : blueTumblerMat);
+      glassMesh.position.set(0, 0.06, 0);
+
+      const liquidGeo = new THREE.CylinderGeometry(0.036, 0.032, 0.016, 12);
+      const liquidMesh = new THREE.Mesh(liquidGeo, buttermilkMat);
+      liquidMesh.position.set(0, 0.11, 0);
+
+      tumblerGroup.add(glassMesh, liquidMesh);
+      houseGroup.add(tumblerGroup);
+    };
+
+    createTumbler(tableX - 0.34, tableZ - 0.34, false); // Blue tumbler for North Diner (to their right)
+    createTumbler(tableX + 0.34, tableZ + 0.34, true);  // Steel tumbler for South Diner (to their right)
+    createTumbler(tableX - 0.62, tableZ + 0.28, true);  // Steel tumbler for West Diner (to their right)
+    createTumbler(tableX + 0.62, tableZ - 0.28, false); // Blue tumbler for East Diner (to their right)
+
+    // Register all four individual meal targets into raycasting click meshes
+    galleryArtMeshes.push(...mealHitMeshes);
+
     // Interactive Artifacts Sparkle Particle System
     const sparkleAnchors = [
       { x: -13.50, y: 1.35, z: -24.38, rx: 0.70, ry: 0.50, rz: 0.25 }, // Aquarium
+      { x: tableX, y: 0.85, z: tableZ, rx: 0.65, ry: 0.20, rz: 0.40 }, // Dining Table Banana-Leaf Meals
       { x: -2.48, y: 1.85, z: -8.0, rx: 0.10, ry: 0.75, rz: 0.60 },   // Portrait
       { x: 2.48, y: 1.85, z: -12.0, rx: 0.10, ry: 0.75, rz: 0.70 },   // Blueprint Map
       { x: -10.0, y: 2.20, z: -24.85, rx: 1.5, ry: 0.90, rz: 0.10 },  // Token Board
@@ -3976,6 +4591,9 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
         const dest = hit.userData?.destinationUrl;
         if (dest) {
           window.open(dest, "_blank", "noopener,noreferrer");
+          if ((hit.userData?.objId === "obj-living-dining-meals" || hit.userData?.objId?.startsWith("obj-living-dining-meal-")) && !hasShownKundapuraDialogueRef.current) {
+            hasOpenedKundapuraProjectRef.current = true;
+          }
         }
       }
     };

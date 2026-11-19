@@ -63,6 +63,22 @@ export interface DialogueBoxProps {
   onBackdropClick?: () => void;
 }
 
+// Helper to render formatted dialogue text (supports markdown italics: *word* -> <em>word</em>)
+function renderFormattedDialogueText(text: string) {
+  if (!text) return "";
+  const parts = text.split(/(\*[^*]+\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
+      return (
+        <em key={index} className="italic font-serif font-bold tracking-wide">
+          {part.slice(1, -1)}
+        </em>
+      );
+    }
+    return part;
+  });
+}
+
 export default function DialogueBox({
   isOpen,
   title,
@@ -77,13 +93,11 @@ export default function DialogueBox({
   showCancelButton = true,
   hideCloseButton = false,
   disableKeyboardAdvance = false,
-  instantText = false,
+  instantText = true,
   allowBackdropDismiss = false,
   onBackdropClick,
 }: DialogueBoxProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [displayedLength, setDisplayedLength] = useState(() => instantText && lines[0] ? lines[0].text.length : 0);
-  const [isRevealed, setIsRevealed] = useState(() => instantText);
   const [nameInputValue, setNameInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -105,48 +119,18 @@ export default function DialogueBox({
     if (isDifferent) {
       prevLinesRef.current = lines;
       setCurrentIndex(0);
-      setDisplayedLength(instantText ? (lines[0]?.text.length || 0) : 0);
-      setIsRevealed(instantText);
       setNameInputValue("");
     }
-  }, [lines, instantText]);
+  }, [lines]);
 
-  const isTextRevealed = instantText || isRevealed;
+  const isTextRevealed = true; // Text is globally instant across all dialogues
 
   // Focus input when name prompt reveals
   useEffect(() => {
-    if (isLastNamePromptLine && isTextRevealed) {
+    if (isLastNamePromptLine) {
       inputRef.current?.focus();
     }
-  }, [isLastNamePromptLine, isTextRevealed]);
-
-  // Typewriter effect (skipped if instantText is true)
-  useEffect(() => {
-    if (!isOpen || !currentLine) return;
-
-    if (instantText) {
-      setDisplayedLength(currentLine.text.length);
-      setIsRevealed(true);
-      return;
-    }
-
-    setDisplayedLength(0);
-    setIsRevealed(false);
-
-    const interval = setInterval(() => {
-      setDisplayedLength((prev) => {
-        const next = prev + 2;
-        if (next >= currentLine.text.length) {
-          clearInterval(interval);
-          setIsRevealed(true);
-          return currentLine.text.length;
-        }
-        return next;
-      });
-    }, 22);
-
-    return () => clearInterval(interval);
-  }, [isOpen, currentIndex, currentLine, instantText]);
+  }, [isLastNamePromptLine]);
 
   // Advance to next line or complete dialogue when action button is clicked
   const handleButtonClick = useCallback(() => {
@@ -167,24 +151,18 @@ export default function DialogueBox({
   const handleAdvance = useCallback(() => {
     if (!isOpen || !currentLine) return;
 
-    if (!isTextRevealed) {
-      // First click: reveal full line instantly
-      setDisplayedLength(currentLine.text.length);
-      setIsRevealed(true);
-    } else {
-      // If we are at the name prompt line, require input or refusal to proceed
-      if (isLastNamePromptLine) {
-        return;
-      }
-
-      // Next line or complete
-      if (currentIndex + 1 < activeLines.length) {
-        setCurrentIndex((prev) => prev + 1);
-      } else {
-        onComplete();
-      }
+    // If we are at the name prompt line, require input or refusal to proceed
+    if (isLastNamePromptLine) {
+      return;
     }
-  }, [isOpen, currentLine, isTextRevealed, isLastNamePromptLine, currentIndex, activeLines.length, onComplete]);
+
+    // Next line or complete
+    if (currentIndex + 1 < activeLines.length) {
+      setCurrentIndex((prev) => prev + 1);
+    } else {
+      onComplete();
+    }
+  }, [isOpen, currentLine, isLastNamePromptLine, currentIndex, activeLines.length, onComplete]);
 
   // Global key listener for dialogue advance
   useEffect(() => {
@@ -327,14 +305,14 @@ export default function DialogueBox({
             )}
           </div>
 
-          {/* Right Dialogue Text with Typewriter */}
+          {/* Right Dialogue Text (Instant with markdown formatting) */}
           <div className="flex-1 min-w-0">
             <div className="text-[12px] sm:text-[13px] leading-relaxed whitespace-pre-line text-black font-sans select-text">
-              {instantText ? currentLine.text : currentLine.text.substring(0, displayedLength)}
+              {renderFormattedDialogueText(currentLine.text)}
             </div>
 
             {/* Recessed Name Input Field */}
-            {isLastNamePromptLine && isTextRevealed && (
+            {isLastNamePromptLine && (
               <div
                 className="mt-2.5 flex flex-col gap-1.5"
                 onClick={(e) => e.stopPropagation()}

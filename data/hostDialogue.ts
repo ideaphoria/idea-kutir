@@ -57,6 +57,25 @@ export const HOST_REFUSAL_RESPONSE_LINE: DialogueLine = {
 };
 
 /**
+ * Master of the House scold dialogue when the visitor walks past the cat portrait
+ * without clicking/interacting with it.
+ */
+export const HOST_CAT_PORTRAIT_SCOLD_LINE: DialogueLine = {
+  speaker: "Master of the House",
+  text: "Yo! I said to click on the blue items, do you read??",
+};
+
+/**
+ * Master of the House dialogue triggered after the visitor opens
+ * the Kundapura field notes Notion project and returns to the house.
+ * Note: "cared" is wrapped in markdown asterisks to render in italics.
+ */
+export const HOST_KUNDAPURA_POST_VIEW_LINE: DialogueLine = {
+  speaker: "Master of the House",
+  text: "Can't believe you *cared* enough to click on that, cutie",
+};
+
+/**
  * The Host's response when the player submits a name.
  */
 export function getHostNameConfirmedDialogue(name: string): DialogueLine[] {
