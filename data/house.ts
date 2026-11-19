@@ -484,7 +484,7 @@ export const COLLECTIBLE_OBJECTS: Record<string, CollectibleObject> = {
   },
   "obj-living-dining-meals": {
     id: "obj-living-dining-meals",
-    name: "Kundapura Field Notes",
+    name: "Learning from Place Project",
     roomId: "living_room",
     roomName: "The Living Room",
     type: "Field Notes & Culinary Exhibit",
@@ -496,7 +496,7 @@ export const COLLECTIBLE_OBJECTS: Record<string, CollectibleObject> = {
   },
   "obj-living-dining-meal-1": {
     id: "obj-living-dining-meal-1",
-    name: "Banana-Leaf Meal 1 (North-West)",
+    name: "Learning from Place Project",
     roomId: "living_room",
     roomName: "The Living Room",
     type: "Field Notes & Culinary Exhibit",
@@ -508,7 +508,7 @@ export const COLLECTIBLE_OBJECTS: Record<string, CollectibleObject> = {
   },
   "obj-living-dining-meal-2": {
     id: "obj-living-dining-meal-2",
-    name: "Banana-Leaf Meal 2 (North-East)",
+    name: "Learning from Place Project",
     roomId: "living_room",
     roomName: "The Living Room",
     type: "Field Notes & Culinary Exhibit",
@@ -520,7 +520,7 @@ export const COLLECTIBLE_OBJECTS: Record<string, CollectibleObject> = {
   },
   "obj-living-dining-meal-3": {
     id: "obj-living-dining-meal-3",
-    name: "Banana-Leaf Meal 3 (South-West)",
+    name: "Learning from Place Project",
     roomId: "living_room",
     roomName: "The Living Room",
     type: "Field Notes & Culinary Exhibit",
@@ -532,7 +532,7 @@ export const COLLECTIBLE_OBJECTS: Record<string, CollectibleObject> = {
   },
   "obj-living-dining-meal-4": {
     id: "obj-living-dining-meal-4",
-    name: "Banana-Leaf Meal 4 (South-East)",
+    name: "Learning from Place Project",
     roomId: "living_room",
     roomName: "The Living Room",
     type: "Field Notes & Culinary Exhibit",

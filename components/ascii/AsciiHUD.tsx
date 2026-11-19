@@ -168,7 +168,11 @@ export default function AsciiHUD({
               <div className="border border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white p-2">
                 <div className="text-xs font-bold text-black">{hoveredObject.name}</div>
                 <div className="text-[11px] text-[#555] italic mt-0.5">
-                  Click or press E to inspect
+                  {hoveredObject.destinationUrl || hoveredObject.id.startsWith("obj-living-dining-")
+                    ? "Click or press E to view"
+                    : hoveredObject.id === "obj-hallway-portrait"
+                    ? "Click or press E to view profile"
+                    : "Click or press E to inspect"}
                 </div>
               </div>
             </div>

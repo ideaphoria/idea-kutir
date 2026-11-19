@@ -401,8 +401,12 @@ export class FirstPersonNavigator {
 
     // 5. Living Room (X: -17.5 to -2.8, Z: -25.0 to -11.0)
     if (x >= -17.5 + margin && x <= -3.0 && z >= -25.0 + margin && z <= -11.0 - margin) {
-      // Solid collision for enlarged dining table & chairs (X: -15.10 to -12.10, Z: -21.55 to -19.45)
-      if (x >= -15.10 && x <= -12.10 && z >= -21.55 && z <= -19.45) {
+      // Solid collision for dining arrangement (table and chairs)
+      if (x >= -15.85 && x <= -11.15 && z >= -22.00 && z <= -19.60) {
+        return false;
+      }
+      // Solid collision for lounge arrangement (sofa and coffee table)
+      if (x >= -11.35 && x <= -7.50 && z >= -17.45 && z <= -13.55) {
         return false;
       }
       return true;

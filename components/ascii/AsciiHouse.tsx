@@ -98,6 +98,79 @@ export const INTRO_SCREENS = {
   },
 } as const;
 
+/**
+ * Checks geometric line of sight between the player camera and an interactive object.
+ * Prevents interacting through solid interior and exterior walls.
+ */
+function checkLineOfSight(
+  camX: number,
+  camY: number,
+  camZ: number,
+  objX: number,
+  objY: number,
+  objZ: number,
+  playerRoom: string,
+  objRoom: string
+): boolean {
+  // Floor difference filter (cannot interact through floors or ceilings)
+  if (Math.abs(camY - objY) > 2.2) return false;
+
+  // Same room is visible unless separated by major room partitions
+  if (playerRoom === objRoom) {
+    return true;
+  }
+
+  // Cross-wall check for West wall (X = -2.8) between Entrance Hall and Living Room
+  if ((camX < -2.8 && objX > -2.8) || (camX > -2.8 && objX < -2.8)) {
+    const t = (-2.8 - camX) / (objX - camX);
+    if (t >= 0 && t <= 1) {
+      const crossZ = camZ + t * (objZ - camZ);
+      // Living Room doorway aperture is Z in [-19.5, -16.5]
+      if (crossZ < -19.5 || crossZ > -16.5) {
+        return false; // Blocked by solid wall
+      }
+    }
+  }
+
+  // Cross-wall check for East wall (X = 2.8) between Entrance Hall and Study / Art Room
+  if ((camX < 2.8 && objX > 2.8) || (camX > 2.8 && objX < 2.8)) {
+    const t = (2.8 - camX) / (objX - camX);
+    if (t >= 0 && t <= 1) {
+      const crossZ = camZ + t * (objZ - camZ);
+      // Study doorway Z in [-8.8, -6.2], Art Room doorway Z in [-19.5, -16.5]
+      const inStudyDoorway = crossZ >= -8.8 && crossZ <= -6.2;
+      const inArtDoorway = crossZ >= -19.5 && crossZ <= -16.5;
+      if (!inStudyDoorway && !inArtDoorway) {
+        return false; // Blocked by solid wall
+      }
+    }
+  }
+
+  // Cross-wall check for Study / Art Room partition wall (Z = -13.0, X in [2.8, 11.8])
+  if ((camZ < -13.0 && objZ > -13.0) || (camZ > -13.0 && objZ < -13.0)) {
+    const t = (-13.0 - camZ) / (objZ - camZ);
+    if (t >= 0 && t <= 1) {
+      const crossX = camX + t * (objX - camX);
+      if (crossX >= 2.8 && crossX <= 11.8) {
+        return false; // Blocked by solid partition wall
+      }
+    }
+  }
+
+  // Cross-wall check for Front facade (Z = 0.0, X outside threshold [-1.2, 1.2])
+  if ((camZ < 0.0 && objZ > 0.0) || (camZ > 0.0 && objZ < 0.0)) {
+    const t = (0.0 - camZ) / (objZ - camZ);
+    if (t >= 0 && t <= 1) {
+      const crossX = camX + t * (objX - camX);
+      if (crossX < -1.2 || crossX > 1.2) {
+        return false; // Blocked by front exterior wall
+      }
+    }
+  }
+
+  return true;
+}
+
 export default function AsciiHouse() {
   const containerRef = useRef<HTMLDivElement>(null);
   const navigatorRef = useRef<FirstPersonNavigator | null>(null);
@@ -771,8 +844,12 @@ export default function AsciiHouse() {
     }
   }, []);
 
+  const lastInteractTimeRef = useRef<number>(0);
   const handleInteract = useCallback(() => {
     if (introStage !== "playing" || !!hostDialogueConfig) return;
+    const now = performance.now();
+    if (now - lastInteractTimeRef.current < 250) return;
+    lastInteractTimeRef.current = now;
 
     // Check interactive doors on second floor
     if (telemetry.y >= 5.0) {
@@ -1126,28 +1203,45 @@ export default function AsciiHouse() {
     };
   }, []);
 
-  // Proximity detection for cat portrait scold in Entrance Hall
+  // Movement-based proximity detection for cat portrait scold in Entrance Hall
   useEffect(() => {
     if (introStage !== "playing") return;
     if (hasInteractedWithPortraitRef.current || hasShownPortraitScoldRef.current) return;
 
-    const PORTRAIT_X = -2.51;
-    const PORTRAIT_Z = -8.0;
-    const PROXIMITY_RADIUS = 2.8;
-
-    const distToPortrait = Math.hypot(telemetry.x - PORTRAIT_X, telemetry.z - PORTRAIT_Z);
-
-    // If player is outside proximity radius or outside entrance hall, mark hasSpawnedOutside
-    if (distToPortrait > PROXIMITY_RADIUS || telemetry.currentRoomId !== "entrance_hall") {
+    // Track entering from outside: if the player is in exterior or at Z >= 0.2
+    if (telemetry.currentRoomId === "exterior" || telemetry.z >= 0.2) {
       hasSpawnedOutsideRef.current = true;
+      return;
     }
 
-    // Trigger grace timer when entering proximity zone
+    // Proximity activation zone: full 5.1m hallway width (X in [-2.55, 2.55]), Z in [-11.0, -5.0] on ground floor
+    const inHallway = telemetry.currentRoomId === "entrance_hall" && telemetry.y < 3.5;
+    const inProximityZone =
+      inHallway &&
+      telemetry.x >= -2.55 &&
+      telemetry.x <= 2.55 &&
+      telemetry.z <= -5.0 &&
+      telemetry.z >= -11.0;
+
+    // Only active if armed by entering from outside
+    if (!hasSpawnedOutsideRef.current || !inProximityZone) return;
+
+    // Fast-pass detection: if player walks past the portrait (Z <= -9.2) without interacting, trigger immediately
+    if (telemetry.z <= -9.2) {
+      if (portraitScoldTimerRef.current) {
+        clearTimeout(portraitScoldTimerRef.current);
+        portraitScoldTimerRef.current = null;
+      }
+      if (isAnyModalOpenRef.current) {
+        setIsPortraitScoldQueued(true);
+      } else {
+        triggerPortraitScoldDialogue();
+      }
+      return;
+    }
+
+    // Grace-period detection (1.5s): start timer if in zone [-9.2, -5.0] and timer not active
     if (
-      telemetry.currentRoomId === "entrance_hall" &&
-      telemetry.y < 3.5 &&
-      distToPortrait <= PROXIMITY_RADIUS &&
-      hasSpawnedOutsideRef.current &&
       !hasInteractedWithPortrait &&
       !hasShownPortraitScold &&
       !isPortraitScoldQueued &&
@@ -1163,7 +1257,7 @@ export default function AsciiHouse() {
         } else {
           triggerPortraitScoldDialogue();
         }
-      }, 2000);
+      }, 1500); // 1.5 seconds grace period
     }
   }, [
     telemetry.x,
@@ -1302,6 +1396,11 @@ export default function AsciiHouse() {
           setIsMapOpen((prev) => !prev);
           setIsNavHUDOpen(false);
           setIsInventoryOpen(false);
+        }
+      } else if (e.code === "KeyE") {
+        if (hoveredObjectRef.current && !isAnyModalOpenRef.current && !hostDialogueConfig) {
+          e.preventDefault();
+          handleInteractRef.current();
         }
       } else if (e.key === "Escape") {
         if (inspectedObject) {
@@ -2602,56 +2701,65 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
 
     // ─── LIVING ROOM PORTFOLIO OBJECTS (#769EFD VISUAL LANGUAGE) ───
 
-    // 1. Resident's Dog Bed with Dog Toys (obj-dog-bed at X = -6.5, Z = -13.5)
+    // 1. Resident's Dog Bed with Dog Toys (obj-dog-bed at X = -5.80, Z = -13.50)
+    const dogBedX = -5.80;
+    const dogBedZ = -13.50;
     // Floor contact shadow beneath dog bed
-    addBox(2.0, 0.005, 1.6, -6.5, 0.002, -13.5, contactShadowMaterial);
+    addBox(2.0, 0.005, 1.6, dogBedX, 0.002, dogBedZ, contactShadowMaterial);
     // Bolster bed outer rim in deep interactive blue
-    addBox(1.6, 0.26, 0.16, -6.5, 0.13, -12.82, interactiveDeep); // South rim
-    addBox(1.6, 0.26, 0.16, -6.5, 0.13, -14.18, interactiveDeep); // North rim
-    addBox(0.16, 0.26, 1.20, -7.22, 0.13, -13.5, interactiveDeep); // West rim
-    addBox(0.16, 0.26, 1.20, -5.78, 0.13, -13.5, interactiveDeep); // East rim
+    addBox(1.6, 0.26, 0.16, dogBedX, 0.13, dogBedZ + 0.68, interactiveDeep); // South rim
+    addBox(1.6, 0.26, 0.16, dogBedX, 0.13, dogBedZ - 0.68, interactiveDeep); // North rim
+    addBox(0.16, 0.26, 1.20, dogBedX - 0.72, 0.13, dogBedZ, interactiveDeep); // West rim
+    addBox(0.16, 0.26, 1.20, dogBedX + 0.72, 0.13, dogBedZ, interactiveDeep); // East rim
     // Soft inner cushion in mid periwinkle
-    addBox(1.28, 0.16, 1.20, -6.5, 0.08, -13.5, interactiveMid);
+    addBox(1.28, 0.16, 1.20, dogBedX, 0.08, dogBedZ, interactiveMid);
     // Real 3D Dog Toys in vibrant #769EFD
     // Toy 1: Squeaky chew bone
-    addBox(0.38, 0.08, 0.12, -6.4, 0.18, -13.4, interactiveCore);
-    addBox(0.10, 0.11, 0.22, -6.57, 0.18, -13.4, interactiveCore); // Bone knob left
-    addBox(0.10, 0.11, 0.22, -6.23, 0.18, -13.4, interactiveCore); // Bone knob right
+    addBox(0.38, 0.08, 0.12, dogBedX + 0.10, 0.18, dogBedZ + 0.10, interactiveCore);
+    addBox(0.10, 0.11, 0.22, dogBedX - 0.07, 0.18, dogBedZ + 0.10, interactiveCore); // Bone knob left
+    addBox(0.10, 0.11, 0.22, dogBedX + 0.27, 0.18, dogBedZ + 0.10, interactiveCore); // Bone knob right
     // Toy 2: Textured rope knot ball
-    addBox(0.16, 0.16, 0.16, -6.7, 0.19, -13.65, interactiveGlow);
+    addBox(0.16, 0.16, 0.16, dogBedX - 0.20, 0.19, dogBedZ - 0.15, interactiveGlow);
 
-    // 2. Low Architectural Sofa (obj-sofa at X = -11.5, Z = -18.0)
+    // 2. Low Architectural Sofa (obj-sofa at X = -10.50, Z = -15.50)
+    // Proportions: 3.60m long (Z), 1.40m deep (X), 0.72m overall height. Facing East (+X).
+    const sofaX = -10.50;
+    const sofaZ = -15.50;
     // Floor contact shadow beneath sofa
-    addBox(2.2, 0.005, 4.4, -11.5, 0.002, -18.0, contactShadowMaterial);
-    // Dark timber modernist base plinth
-    addBox(1.5, 0.32, 3.8, -11.5, 0.16, -18.0, consoleMaterial);
-    // Deep backrest along west edge
-    addBox(0.35, 0.65, 3.8, -12.08, 0.65, -18.0, interactiveDeep);
-    // Armrest North
-    addBox(1.5, 0.44, 0.26, -11.5, 0.54, -16.23, interactiveDeep);
-    // Armrest South
-    addBox(1.5, 0.44, 0.26, -11.5, 0.54, -19.77, interactiveDeep);
-    // Upholstered seat cushions in mid periwinkle
-    addBox(1.25, 0.20, 3.28, -11.38, 0.42, -18.0, interactiveMid);
+    addBox(1.60, 0.005, 3.80, sofaX, 0.002, sofaZ, contactShadowMaterial);
+    // Dark timber modernist base plinth (1.40m wide, 0.28m high, 3.60m long)
+    addBox(1.40, 0.28, 3.60, sofaX, 0.14, sofaZ, consoleMaterial);
+    // Deep backrest along west edge: backrest top at 0.72m overall height
+    // Width 0.35m (X), Height 0.44m (Y, from 0.28m to 0.72m -> center Y = 0.50m), Length 3.60m (Z)
+    addBox(0.35, 0.44, 3.60, sofaX - 0.525, 0.50, sofaZ, interactiveDeep);
+    // Armrest North (Z = -13.825, width 1.40m X, height 0.30m Y, length 0.25m Z -> top at 0.58m)
+    addBox(1.40, 0.30, 0.25, sofaX, 0.43, sofaZ + 1.675, interactiveDeep);
+    // Armrest South (Z = -17.175, width 1.40m X, height 0.30m Y, length 0.25m Z -> top at 0.58m)
+    addBox(1.40, 0.30, 0.25, sofaX, 0.43, sofaZ - 1.675, interactiveDeep);
+    // Upholstered seat cushions in mid periwinkle (width 1.05m X, height 0.18m Y, length 3.10m Z, center Y = 0.37m, cushion top at 0.46m)
+    addBox(1.05, 0.18, 3.10, sofaX + 0.175, 0.37, sofaZ, interactiveMid);
     // Architectural accent throw pillow in vibrant #769EFD
-    addBox(0.42, 0.18, 0.85, -11.35, 0.56, -17.2, interactiveCore);
+    addBox(0.38, 0.20, 0.75, sofaX + 0.05, 0.52, sofaZ + 0.70, interactiveCore);
 
-    // 3. Cast Coffee Table & Workstation (obj-coffee-table at X = -9.2, Z = -18.0)
+    // 3. Cast Coffee Table & Workstation (obj-coffee-table at X = -8.20, Z = -15.50)
+    // Proportions: 2.40m long (Z), 1.10m wide (X), 0.40m height.
+    const coffeeX = -8.20;
+    const coffeeZ = -15.50;
     // Floor contact shadow beneath coffee table
-    addBox(1.8, 0.005, 3.0, -9.2, 0.002, -18.0, contactShadowMaterial);
-    // Monolithic concrete low table
-    addBox(1.2, 0.38, 2.4, -9.2, 0.19, -18.0, columnShaftMaterial);
-    // Tabletop perimeter reveal trim in #769EFD
-    addBox(1.24, 0.03, 2.44, -9.2, 0.395, -18.0, interactiveCore);
-    // Recessed dark slate tabletop surface
-    addBox(1.14, 0.02, 2.34, -9.2, 0.41, -18.0, columnPlinthMaterial);
+    addBox(1.30, 0.005, 2.60, coffeeX, 0.002, coffeeZ, contactShadowMaterial);
+    // Monolithic concrete low table base plinth (1.06m x 0.35m x 2.36m, center Y = 0.175)
+    addBox(1.06, 0.35, 2.36, coffeeX, 0.175, coffeeZ, columnShaftMaterial);
+    // Tabletop perimeter reveal trim in signature #769EFD (1.12m x 0.025m x 2.42m, center Y = 0.3625)
+    addBox(1.12, 0.025, 2.42, coffeeX, 0.3625, coffeeZ, interactiveCore);
+    // Recessed dark slate tabletop surface (1.10m x 0.025m x 2.40m, center Y = 0.3875, top at 0.40m)
+    addBox(1.10, 0.025, 2.40, coffeeX, 0.3875, coffeeZ, columnPlinthMaterial);
     // Designer's Laptop open on table
-    addBox(0.38, 0.03, 0.54, -9.1, 0.435, -17.8, columnPlinthMaterial); // Base
-    addBox(0.03, 0.36, 0.54, -8.92, 0.60, -17.8, interactiveDeep);       // Screen frame
-    addBox(0.02, 0.32, 0.50, -8.94, 0.60, -17.8, interactiveGlow);       // Screen glowing #769EFD
+    addBox(0.38, 0.025, 0.54, coffeeX, 0.4125, coffeeZ + 0.20, columnPlinthMaterial); // Base
+    addBox(0.025, 0.34, 0.54, coffeeX + 0.18, 0.57, coffeeZ + 0.20, interactiveDeep);  // Screen frame
+    addBox(0.020, 0.30, 0.50, coffeeX + 0.17, 0.57, coffeeZ + 0.20, interactiveGlow);  // Screen glowing #769EFD
     // Design specimen tray with #769EFD accent
-    addBox(0.28, 0.03, 0.42, -9.2, 0.435, -18.6, interactiveMid);
-    addBox(0.12, 0.14, 0.12, -9.2, 0.50, -18.6, interactiveCore);
+    addBox(0.28, 0.025, 0.42, coffeeX, 0.4125, coffeeZ - 0.60, interactiveMid);
+    addBox(0.12, 0.12, 0.12, coffeeX, 0.47, coffeeZ - 0.60, interactiveCore);
     // 5. Cetacean Communication Station Aquarium (obj-aquarium immediately to the RIGHT of sofa against North wall)
     // Floor contact shadow beneath aquarium cabinet
     addBox(1.70, 0.005, 0.70, -13.50, 0.002, -24.40, contactShadowMaterial);
@@ -2746,11 +2854,15 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
     scene.add(aquariumLight);
 
     // 6. Four-Person Dining Arrangement & 3D Banana-Leaf Meals (obj-living-dining-meals across from Aquarium)
-    const diningWoodMaterial = new THREE.MeshLambertMaterial({ color: 0x443022 }); // Dark teak dining table
-    const diningApronMaterial = new THREE.MeshLambertMaterial({ color: 0x322216 });
-    const diningTrimMaterial = interactiveCore; // Signature #769EFD reveal rim
-    const diningChairWoodMaterial = new THREE.MeshLambertMaterial({ color: 0x503828 });
-    const chairCushionMaterial = new THREE.MeshLambertMaterial({ color: 0x3e5270 }); // Muted blue upholstered seat
+    // Idea Kutir Signature Blue Tabletop Finish (#769EFD)
+    const diningTabletopMat = new THREE.MeshLambertMaterial({ color: 0x769efd });   // Primary Idea Kutir signature blue (#769EFD)
+    const diningTableInlayMat = new THREE.MeshLambertMaterial({ color: 0x608df7 }); // Subtle tonal depth for ASCII shading
+    const diningTableEdgeMat = new THREE.MeshLambertMaterial({ color: 0x8cb4fe });  // Lighter perimeter highlight rim
+    const diningApronMaterial = new THREE.MeshLambertMaterial({ color: 0x1e3570 }); // Coordinated deep indigo apron (#1e3570)
+    const diningLegMaterial = new THREE.MeshLambertMaterial({ color: 0x223c78 });   // Coordinated indigo table legs
+    const diningLegCollarMat = new THREE.MeshLambertMaterial({ color: 0x4e7be8 });  // Coordinated mid-blue leg collar accent
+    const diningChairWoodMaterial = new THREE.MeshLambertMaterial({ color: 0x2e241e });
+    const chairCushionMaterial = new THREE.MeshLambertMaterial({ color: 0x2b4674 }); // Coordinated periwinkle upholstered seat
     const terracottaPotMat = new THREE.MeshLambertMaterial({ color: 0x8a3818 });      // Coastal terracotta serving pot
     const terracottaLidMat = new THREE.MeshLambertMaterial({ color: 0xad4d22 });
 
@@ -2772,129 +2884,144 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
     const blueTumblerMat = new THREE.MeshLambertMaterial({ color: 0x1b5abd });    // Coastal blue plastic tumbler
     const buttermilkMat = new THREE.MeshLambertMaterial({ color: 0xf4f6f2 });     // Refreshing white buttermilk (majjige)
 
-    // Table Center: X = -13.60, Z = -20.50 (Directly across from aquarium at X = -13.50, Z = -24.40)
-    // Enlarged to realistic 4-adult dining proportions: 2.10m (X) x 1.20m (Z)
-    const tableX = -13.60;
-    const tableZ = -20.50;
+    // Table Center: X = -13.50, Z = -20.80 (Directly across from aquarium at X = -13.50, Z = -24.40)
+    // Full adult proportions: length 3.60m (X), depth 1.30m (Z), tabletop height 0.76m
+    const tableX = -13.50;
+    const tableZ = -20.80;
     const tableTopY = 0.76;
+    const tableLengthX = 3.60;
+    const tableDepthZ = 1.30;
+    const tableThickY = 0.045;
 
     // Floor contact shadow beneath enlarged dining set
-    addBox(2.40, 0.005, 1.50, tableX, 0.002, tableZ, contactShadowMaterial);
+    addBox(tableLengthX + 0.30, 0.005, tableDepthZ + 0.30, tableX, 0.002, tableZ, contactShadowMaterial);
 
-    // 4 Solid timber table legs (0.08m x 0.74m x 0.08m)
-    addBox(0.08, 0.74, 0.08, tableX - 0.93, 0.37, tableZ - 0.48, diningWoodMaterial);
-    addBox(0.08, 0.74, 0.08, tableX + 0.93, 0.37, tableZ - 0.48, diningWoodMaterial);
-    addBox(0.08, 0.74, 0.08, tableX - 0.93, 0.37, tableZ + 0.48, diningWoodMaterial);
-    addBox(0.08, 0.74, 0.08, tableX + 0.93, 0.37, tableZ + 0.48, diningWoodMaterial);
+    // 4 Solid legs in coordinated architectural indigo with mid-blue collars (0.09m x 0.715m x 0.09m)
+    const legOffsetRelX = tableLengthX / 2 - 0.12; // 1.68m
+    const legOffsetRelZ = tableDepthZ / 2 - 0.12;  // 0.53m
+    const legHeight = tableTopY - tableThickY;        // 0.715m
+    addBox(0.09, legHeight, 0.09, tableX - legOffsetRelX, legHeight / 2, tableZ - legOffsetRelZ, diningLegMaterial);
+    addBox(0.09, legHeight, 0.09, tableX + legOffsetRelX, legHeight / 2, tableZ - legOffsetRelZ, diningLegMaterial);
+    addBox(0.09, legHeight, 0.09, tableX - legOffsetRelX, legHeight / 2, tableZ + legOffsetRelZ, diningLegMaterial);
+    addBox(0.09, legHeight, 0.09, tableX + legOffsetRelX, legHeight / 2, tableZ + legOffsetRelZ, diningLegMaterial);
+    // Upper leg accent collars
+    addBox(0.096, 0.04, 0.096, tableX - legOffsetRelX, legHeight - 0.02, tableZ - legOffsetRelZ, diningLegCollarMat);
+    addBox(0.096, 0.04, 0.096, tableX + legOffsetRelX, legHeight - 0.02, tableZ - legOffsetRelZ, diningLegCollarMat);
+    addBox(0.096, 0.04, 0.096, tableX - legOffsetRelX, legHeight - 0.02, tableZ + legOffsetRelZ, diningLegCollarMat);
+    addBox(0.096, 0.04, 0.096, tableX + legOffsetRelX, legHeight - 0.02, tableZ + legOffsetRelZ, diningLegCollarMat);
 
-    // Under-table structural apron rails
-    addBox(1.86, 0.08, 0.045, tableX, 0.70, tableZ - 0.48, diningApronMaterial);
-    addBox(1.86, 0.08, 0.045, tableX, 0.70, tableZ + 0.48, diningApronMaterial);
-    addBox(0.045, 0.08, 0.96, tableX - 0.93, 0.70, tableZ, diningApronMaterial);
-    addBox(0.045, 0.08, 0.96, tableX + 0.93, 0.70, tableZ, diningApronMaterial);
+    // Under-table structural apron rails in coordinated deep indigo
+    const apronY = tableTopY - tableThickY - 0.04; // 0.675m
+    addBox(tableLengthX - 0.24, 0.08, 0.045, tableX, apronY, tableZ - legOffsetRelZ, diningApronMaterial);
+    addBox(tableLengthX - 0.24, 0.08, 0.045, tableX, apronY, tableZ + legOffsetRelZ, diningApronMaterial);
+    addBox(0.045, 0.08, tableDepthZ - 0.24, tableX - legOffsetRelX, apronY, tableZ, diningApronMaterial);
+    addBox(0.045, 0.08, tableDepthZ - 0.24, tableX + legOffsetRelX, apronY, tableZ, diningApronMaterial);
 
-    // Tabletop reveal trim in signature interactive blue #769EFD
-    addBox(2.12, 0.015, 1.22, tableX, tableTopY - 0.02, tableZ, diningTrimMaterial);
+    // Tabletop reveal trim in lighter perimeter highlight (#8cb4fe)
+    addBox(tableLengthX + 0.02, 0.015, tableDepthZ + 0.02, tableX, tableTopY - 0.025, tableZ, diningTableEdgeMat);
 
-    // Primary solid timber dining tabletop (2.10m x 1.20m, height 0.76m)
-    addBox(2.10, 0.045, 1.20, tableX, tableTopY, tableZ, diningWoodMaterial);
+    // Primary dining tabletop slab in Idea Kutir signature blue (#769EFD)
+    addBox(tableLengthX, tableThickY, tableDepthZ, tableX, tableTopY - tableThickY / 2, tableZ, diningTabletopMat);
+
+    // Inset surface field with subtle tonal variation for tactile ASCII depth
+    addBox(tableLengthX - 0.12, 0.004, tableDepthZ - 0.12, tableX, tableTopY + 0.001, tableZ, diningTableInlayMat);
 
     // Center Terracotta Fish Saaru Sharing Pot on table
     const potBase = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.09, 0.065, 16), terracottaPotMat);
-    potBase.position.set(tableX, tableTopY + 0.055, tableZ);
+    potBase.position.set(tableX, tableTopY + 0.033, tableZ);
     const potRim = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.12, 0.015, 16), terracottaLidMat);
-    potRim.position.set(tableX, tableTopY + 0.09, tableZ);
+    potRim.position.set(tableX, tableTopY + 0.07, tableZ);
     const potCurry = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.10, 0.01, 14), fishCurryMat);
-    potCurry.position.set(tableX, tableTopY + 0.085, tableZ);
+    potCurry.position.set(tableX, tableTopY + 0.065, tableZ);
     houseGroup.add(potBase, potRim, potCurry);
 
-    // Four Full-Sized Adult Dining Chairs (Proper seat height 0.46m, total backrest height 0.94m)
+    // Four Full-Sized Adult Dining Chairs (Proper seat height 0.465m, total backrest height 0.94m)
     const createDiningChair = (cx: number, cz: number, rotY: number) => {
       const chairGroup = new THREE.Group();
       chairGroup.position.set(cx, 0, cz);
       chairGroup.rotation.y = rotY;
 
       // Contact shadow beneath chair
-      const shadowMesh = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.005, 0.52), contactShadowMaterial);
+      const shadowMesh = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.005, 0.54), contactShadowMaterial);
       shadowMesh.position.set(0, 0.002, 0);
       chairGroup.add(shadowMesh);
 
       // 4 Sturdy Chair legs (height 0.435m)
-      const legGeo = new THREE.BoxGeometry(0.042, 0.435, 0.042);
+      const legGeo = new THREE.BoxGeometry(0.045, 0.435, 0.045);
       const leg1 = new THREE.Mesh(legGeo, diningChairWoodMaterial);
-      leg1.position.set(-0.19, 0.217, -0.19);
+      leg1.position.set(-0.20, 0.217, -0.20);
       const leg2 = new THREE.Mesh(legGeo, diningChairWoodMaterial);
-      leg2.position.set(0.19, 0.217, -0.19);
+      leg2.position.set(0.20, 0.217, -0.20);
       const leg3 = new THREE.Mesh(legGeo, diningChairWoodMaterial);
-      leg3.position.set(-0.19, 0.217, 0.19);
+      leg3.position.set(-0.20, 0.217, 0.20);
       const leg4 = new THREE.Mesh(legGeo, diningChairWoodMaterial);
-      leg4.position.set(0.19, 0.217, 0.19);
+      leg4.position.set(0.20, 0.217, 0.20);
       chairGroup.add(leg1, leg2, leg3, leg4);
 
       // Lower leg stretcher rails
-      const braceX = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.025, 0.025), diningChairWoodMaterial);
-      braceX.position.set(0, 0.12, -0.19);
-      const braceX2 = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.025, 0.025), diningChairWoodMaterial);
-      braceX2.position.set(0, 0.12, 0.19);
-      const braceZ = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.025, 0.38), diningChairWoodMaterial);
-      braceZ.position.set(-0.19, 0.12, 0);
-      const braceZ2 = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.025, 0.38), diningChairWoodMaterial);
-      braceZ2.position.set(0.19, 0.12, 0);
+      const braceX = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.025, 0.025), diningChairWoodMaterial);
+      braceX.position.set(0, 0.12, -0.20);
+      const braceX2 = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.025, 0.025), diningChairWoodMaterial);
+      braceX2.position.set(0, 0.12, 0.20);
+      const braceZ = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.025, 0.40), diningChairWoodMaterial);
+      braceZ.position.set(-0.20, 0.12, 0);
+      const braceZ2 = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.025, 0.40), diningChairWoodMaterial);
+      braceZ2.position.set(0.20, 0.12, 0);
       chairGroup.add(braceX, braceX2, braceZ, braceZ2);
 
-      // Chair timber seat frame
-      const seatFrame = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.035, 0.48), diningChairWoodMaterial);
+      // Chair timber seat frame (0.50m x 0.035m x 0.50m)
+      const seatFrame = new THREE.Mesh(new THREE.BoxGeometry(0.50, 0.035, 0.50), diningChairWoodMaterial);
       seatFrame.position.set(0, 0.435, 0);
       chairGroup.add(seatFrame);
 
-      // Upholstered seat cushion (comfortably at height 0.465m)
-      const seatMesh = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.045, 0.46), chairCushionMaterial);
+      // Upholstered seat cushion (comfortably at height 0.465m, top at 0.465m)
+      const seatMesh = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.045, 0.48), chairCushionMaterial);
       seatMesh.position.set(0, 0.465, 0);
       chairGroup.add(seatMesh);
 
       // Full-height backrest upright stiles (reaching 0.94m)
       const stileGeo = new THREE.BoxGeometry(0.04, 0.50, 0.035);
       const stileL = new THREE.Mesh(stileGeo, diningChairWoodMaterial);
-      stileL.position.set(-0.19, 0.69, 0.20);
+      stileL.position.set(-0.20, 0.69, 0.21);
       const stileR = new THREE.Mesh(stileGeo, diningChairWoodMaterial);
-      stileR.position.set(0.19, 0.69, 0.20);
+      stileR.position.set(0.20, 0.69, 0.21);
       chairGroup.add(stileL, stileR);
 
-      // Top curved/arched crest rail
-      const crestRail = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.08, 0.03), diningChairWoodMaterial);
-      crestRail.position.set(0, 0.90, 0.20);
+      // Top curved/arched crest rail (at 0.90m)
+      const crestRail = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.08, 0.03), diningChairWoodMaterial);
+      crestRail.position.set(0, 0.90, 0.21);
       chairGroup.add(crestRail);
 
-      // Ergonomic middle lumbar slat
-      const midRail = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.055, 0.02), diningChairWoodMaterial);
-      midRail.position.set(0, 0.74, 0.20);
+      // Ergonomic middle lumbar slat (at 0.74m)
+      const midRail = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.055, 0.02), diningChairWoodMaterial);
+      midRail.position.set(0, 0.74, 0.21);
       chairGroup.add(midRail);
 
-      // Lower back support rail
-      const lowRail = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.04, 0.02), diningChairWoodMaterial);
-      lowRail.position.set(0, 0.58, 0.20);
+      // Lower back support rail (at 0.58m)
+      const lowRail = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.04, 0.02), diningChairWoodMaterial);
+      lowRail.position.set(0, 0.58, 0.21);
       chairGroup.add(lowRail);
 
       // Vertical back spindles
       const spindleGeo = new THREE.BoxGeometry(0.022, 0.26, 0.018);
       const spindle1 = new THREE.Mesh(spindleGeo, diningChairWoodMaterial);
-      spindle1.position.set(-0.07, 0.74, 0.20);
+      spindle1.position.set(-0.08, 0.74, 0.21);
       const spindle2 = new THREE.Mesh(spindleGeo, diningChairWoodMaterial);
-      spindle2.position.set(0.07, 0.74, 0.20);
+      spindle2.position.set(0.08, 0.74, 0.21);
       chairGroup.add(spindle1, spindle2);
 
       houseGroup.add(chairGroup);
     };
 
-    // Four dining chairs: one chair per side naturally positioned around the table
+    // Four dining chairs: rotated to face INWARD towards the dining table and their respective meals
     // North Chair (facing South towards table)
-    createDiningChair(tableX, tableZ - 0.78, Math.PI);
+    createDiningChair(tableX, tableZ - 0.92, Math.PI);      // Z = -21.72, faces South (+Z)
     // South Chair (facing North towards table and aquarium)
-    createDiningChair(tableX, tableZ + 0.78, 0);
-    // West Chair (facing East towards table)
-    createDiningChair(tableX - 1.22, tableZ, Math.PI / 2);
-    // East Chair (facing West towards table)
-    createDiningChair(tableX + 1.22, tableZ, -Math.PI / 2);
+    createDiningChair(tableX, tableZ + 0.92, 0);            // Z = -19.88, faces North (-Z)
+    // West Chair (facing East towards table and meal)
+    createDiningChair(tableX - 2.05, tableZ, -Math.PI / 2); // X = -15.55, faces East (+X)
+    // East Chair (facing West towards table and meal)
+    createDiningChair(tableX + 2.05, tableZ, Math.PI / 2);  // X = -11.45, faces West (-X)
 
     // Four Banana-Leaf Meals (modeled accurately after reference photograph, scaled to adult proportions)
     const mealHitMeshes: THREE.Mesh[] = [];
@@ -3039,13 +3166,13 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
 
     // Four individual banana-leaf servings on the table cleanly positioned in front of each dining position
     // Meal 1 (North Diner, facing South)
-    createBananaLeafMeal(tableX, tableZ - 0.34, 0, true, "obj-living-dining-meal-1");
+    createBananaLeafMeal(tableX, tableZ - 0.35, 0, true, "obj-living-dining-meal-1");
     // Meal 2 (South Diner, facing North towards aquarium)
-    createBananaLeafMeal(tableX, tableZ + 0.34, Math.PI, false, "obj-living-dining-meal-2");
+    createBananaLeafMeal(tableX, tableZ + 0.35, Math.PI, false, "obj-living-dining-meal-2");
     // Meal 3 (West Diner, facing East towards table)
-    createBananaLeafMeal(tableX - 0.62, tableZ, -Math.PI / 2, false, "obj-living-dining-meal-3");
+    createBananaLeafMeal(tableX - 1.20, tableZ, -Math.PI / 2, false, "obj-living-dining-meal-3");
     // Meal 4 (East Diner, facing West towards table)
-    createBananaLeafMeal(tableX + 0.62, tableZ, Math.PI / 2, true, "obj-living-dining-meal-4");
+    createBananaLeafMeal(tableX + 1.20, tableZ, Math.PI / 2, true, "obj-living-dining-meal-4");
 
     // Table Tumblers (Cool Buttermilk / Majjige) placed to the right of each place setting
     const createTumbler = (tx: number, tz: number, isSteel: boolean) => {
@@ -3064,10 +3191,10 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
       houseGroup.add(tumblerGroup);
     };
 
-    createTumbler(tableX - 0.34, tableZ - 0.34, false); // Blue tumbler for North Diner (to their right)
-    createTumbler(tableX + 0.34, tableZ + 0.34, true);  // Steel tumbler for South Diner (to their right)
-    createTumbler(tableX - 0.62, tableZ + 0.28, true);  // Steel tumbler for West Diner (to their right)
-    createTumbler(tableX + 0.62, tableZ - 0.28, false); // Blue tumbler for East Diner (to their right)
+    createTumbler(tableX - 0.40, tableZ - 0.35, false); // Blue tumbler for North Diner (to their right)
+    createTumbler(tableX + 0.40, tableZ + 0.35, true);  // Steel tumbler for South Diner (to their right)
+    createTumbler(tableX - 1.20, tableZ + 0.35, true);  // Steel tumbler for West Diner (to their right)
+    createTumbler(tableX + 1.20, tableZ - 0.35, false); // Blue tumbler for East Diner (to their right)
 
     // Register all four individual meal targets into raycasting click meshes
     galleryArtMeshes.push(...mealHitMeshes);
@@ -3075,12 +3202,12 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
     // Interactive Artifacts Sparkle Particle System
     const sparkleAnchors = [
       { x: -13.50, y: 1.35, z: -24.38, rx: 0.70, ry: 0.50, rz: 0.25 }, // Aquarium
-      { x: tableX, y: 0.85, z: tableZ, rx: 0.65, ry: 0.20, rz: 0.40 }, // Dining Table Banana-Leaf Meals
-      { x: -2.48, y: 1.85, z: -8.0, rx: 0.10, ry: 0.75, rz: 0.60 },   // Portrait
-      { x: 2.48, y: 1.85, z: -12.0, rx: 0.10, ry: 0.75, rz: 0.70 },   // Blueprint Map
-      { x: -10.0, y: 2.20, z: -24.85, rx: 1.5, ry: 0.90, rz: 0.10 },  // Token Board
-      { x: -9.2, y: 0.55, z: -18.0, rx: 0.60, ry: 0.25, rz: 0.90 },   // Laptop & Folio
-      { x: -6.5, y: 0.50, z: -13.5, rx: 0.60, ry: 0.30, rz: 0.60 },   // Dog Bed
+      { x: tableX, y: 0.85, z: tableZ, rx: 0.90, ry: 0.20, rz: 0.50 },  // Dining Table Banana-Leaf Meals
+      { x: -2.48, y: 1.85, z: -8.0, rx: 0.10, ry: 0.75, rz: 0.60 },    // Portrait
+      { x: 2.48, y: 1.85, z: -12.0, rx: 0.10, ry: 0.75, rz: 0.70 },    // Blueprint Map
+      { x: -10.0, y: 2.20, z: -24.85, rx: 1.5, ry: 0.90, rz: 0.10 },   // Token Board
+      { x: coffeeX, y: 0.55, z: coffeeZ, rx: 0.60, ry: 0.25, rz: 0.90 },// Laptop & Workstation
+      { x: dogBedX, y: 0.50, z: dogBedZ, rx: 0.60, ry: 0.30, rz: 0.60 },// Dog Bed
     ];
 
     const particlesPerAnchor = 16;
@@ -4421,32 +4548,61 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
         (sparklePoints.material as THREE.PointsMaterial).opacity = 0.65 + 0.35 * Math.sin(animTime * 4.0);
       }
 
-      // Proximity detection for interactive objects
+      // ─── Authoritative Interaction-Selection System ───
       camera.getWorldDirection(forwardVec);
       forwardVec.y = 0;
       forwardVec.normalize();
 
-      let closestObj: InteractiveObject3D | null = null;
-      let minDistance = 999;
+      const camX = camera.position.x;
+      const camY = camera.position.y;
+      const camZ = camera.position.z;
+      const currentRoom = navigatorRef.current
+        ? navigatorRef.current.detectCurrentRoom(camX, camZ, camY)
+        : telemetry.currentRoomId || "entrance_hall";
 
-      HOUSE_OBJECTS_3D.forEach((obj) => {
+      let closestObj: InteractiveObject3D | null = null;
+      let bestScore = 9999;
+
+      for (const obj of HOUSE_OBJECTS_3D) {
         const objPos = new THREE.Vector3(...obj.position);
         const dist = camera.position.distanceTo(objPos);
 
-        if (dist <= obj.interactionRadius) {
-          toObjVec.copy(objPos).sub(camera.position);
-          toObjVec.y = 0;
-          toObjVec.normalize();
+        // 1. Activation radius filter
+        if (dist > obj.interactionRadius) continue;
 
-          const dot = forwardVec.dot(toObjVec);
-          if (dot > 0.35 && dist < minDistance) {
-            minDistance = dist;
-            closestObj = obj;
-          }
+        // 2. Floor matching filter (|camY - objPos.y| <= 2.2m)
+        if (Math.abs(camY - objPos.y) > 2.2) continue;
+
+        // 3. Line of sight filter (prevents interacting through solid walls)
+        if (!checkLineOfSight(camX, camY, camZ, objPos.x, objPos.y, objPos.z, currentRoom, obj.roomId)) {
+          continue;
         }
-      });
 
-      hoveredObjectRef.current = closestObj;
+        // 4. Directional scoring & proximity priority
+        toObjVec.copy(objPos).sub(camera.position);
+        toObjVec.y = 0;
+        toObjVec.normalize();
+
+        const dot = forwardVec.dot(toObjVec);
+
+        let score = dist;
+        if (dot >= 0) {
+          score -= dot * 0.6; // Priority bonus for facing towards object
+        } else if (dot < -0.3) {
+          score += 1.5; // Slight distance penalty for objects directly behind
+        }
+
+        if (score < bestScore) {
+          bestScore = score;
+          closestObj = obj;
+        }
+      }
+
+      // Synchronize hovered object state and ref
+      if (closestObj?.id !== hoveredObjectRef.current?.id) {
+        hoveredObjectRef.current = closestObj;
+        setHoveredObject(closestObj);
+      }
       // ─── Manifestation Animation Progression ───
       if (manifestationRef.current.isManifesting) {
         const elapsed = performance.now() - manifestationRef.current.startTime;
