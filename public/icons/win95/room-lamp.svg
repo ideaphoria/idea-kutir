@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" shape-rendering="crispEdges">
+  <!-- Windows 95 Style Table Lamp Icon -->
+  <!-- Top Finial -->
+  <rect x="15" y="2" width="2" height="2" fill="#000000" />
+  <rect x="15" y="3" width="1" height="1" fill="#ffff99" />
+
+  <!-- Lamp Shade Contour -->
+  <path d="M 12 4 L 20 4 L 25 14 L 7 14 Z" fill="#000000" />
+  <!-- Shade Body (Cream/Warm Yellow with 16-color shading) -->
+  <polygon points="13,5 19,5 24,13 8,13" fill="#ffffe0" />
+  <!-- Shade Highlights & Shadow Stripes -->
+  <polygon points="13,5 15,5 10,13 8,13" fill="#ffffff" />
+  <polygon points="17,5 19,5 24,13 22,13" fill="#e0c868" />
+  <polygon points="19,5 19,5 24,13 23,13" fill="#b09840" />
+
+  <!-- Shade Bottom Rim Trim -->
+  <rect x="8" y="12" width="16" height="1" fill="#cca625" />
+  <!-- Pull Chain on right -->
+  <line x1="20" y1="14" x2="20" y2="19" stroke="#000000" stroke-width="1" />
+  <rect x="19" y="19" width="3" height="3" fill="#000000" />
+  <rect x="20" y="20" width="1" height="1" fill="#ffff00" />
+
+  <!-- Lamp Stem (Brass / Gold with highlight) -->
+  <rect x="15" y="14" width="2" height="11" fill="#000000" />
+  <rect x="15" y="14" width="1" height="11" fill="#ffff99" />
+  <rect x="16" y="14" width="1" height="11" fill="#886600" />
+
+  <!-- Decorative Turnings on stem -->
+  <rect x="14" y="17" width="4" height="2" fill="#000000" />
+  <rect x="14" y="17" width="3" height="1" fill="#ffd700" />
+  <rect x="14" y="22" width="4" height="2" fill="#000000" />
+  <rect x="14" y="22" width="3" height="1" fill="#ffd700" />
+
+  <!-- Lamp Base Contour & Stepped Pedestal -->
+  <rect x="10" y="25" width="12" height="5" fill="#000000" />
+  <rect x="9" y="27" width="14" height="3" fill="#000000" />
+  <rect x="8" y="29" width="16" height="2" fill="#000000" />
+
+  <!-- Lamp Base Fills (Rich wood / polished brass) -->
+  <rect x="11" y="26" width="10" height="1" fill="#d4af37" />
+  <rect x="10" y="27" width="12" height="1" fill="#aa8214" />
+  <rect x="9" y="28" width="14" height="1" fill="#664c00" />
+  <rect x="9" y="29" width="14" height="1" fill="#443300" />
+  <!-- Base Highlights -->
+  <rect x="11" y="26" width="3" height="1" fill="#ffffff" />
+  <rect x="10" y="27" width="3" height="1" fill="#ffff99" />
+</svg>

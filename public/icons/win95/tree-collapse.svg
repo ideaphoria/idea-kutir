@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 9 9" width="9" height="9" shape-rendering="crispEdges">
+  <!-- Windows 95 Tree [-] Collapse Box -->
+  <rect x="0" y="0" width="9" height="9" fill="#808080" />
+  <rect x="1" y="1" width="7" height="7" fill="#ffffff" />
+  <!-- Horizontal line of minus -->
+  <rect x="2" y="4" width="5" height="1" fill="#000000" />
+</svg>

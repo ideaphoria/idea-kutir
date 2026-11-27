@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" shape-rendering="crispEdges">
+  <!-- Windows 95 Open Manila Folder Icon -->
+  <!-- Back Tab & Back Flap Outline -->
+  <path d="M 2 7 L 12 7 L 14 9 L 26 9 L 26 23 L 2 23 Z" fill="#000000" />
+  <path d="M 3 8 L 11 8 L 13 10 L 25 10 L 25 22 L 3 22 Z" fill="#b89428" />
+
+  <!-- White Sheets of Paper inside -->
+  <rect x="6" y="9" width="16" height="8" fill="#000000" />
+  <rect x="7" y="10" width="14" height="7" fill="#ffffff" />
+  <line x1="9" y1="12" x2="18" y2="12" stroke="#000080" stroke-width="1" />
+  <line x1="9" y1="14" x2="16" y2="14" stroke="#000080" stroke-width="1" />
+
+  <!-- Front Flap Outline (Angled down) -->
+  <polygon points="1,26 6,15 29,15 25,26" fill="#000000" />
+  <!-- Front Flap Body -->
+  <polygon points="2,25 6,16 28,16 24,25" fill="#ffd700" />
+  <!-- Flap Highlights & Shading -->
+  <line x1="6" y1="16" x2="28" y2="16" stroke="#ffffe0" stroke-width="1" />
+  <line x1="2" y1="25" x2="6" y2="16" stroke="#ffffe0" stroke-width="1" />
+  <line x1="2" y1="25" x2="24" y2="25" stroke="#cca625" stroke-width="1" />
+  <line x1="28" y1="16" x2="24" y2="25" stroke="#997a15" stroke-width="1" />
+</svg>

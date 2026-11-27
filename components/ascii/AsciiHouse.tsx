@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import * as THREE from "three";
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { CustomAsciiRenderer } from "./CustomAsciiRenderer";
-import { HOUSE_OBJECTS_3D, InteractiveObject3D } from "@/data/house3d";
+import { HOUSE_OBJECTS_3D, InteractiveObject3D, get3DRoomIdForProject } from "@/data/house3d";
 import { FirstPersonNavigator, ControlTelemetry } from "./FirstPersonControls";
 import { STAIRCASE_CONFIG, getTreadData } from "@/data/staircaseGeometry";
 import AsciiHUD from "./AsciiHUD";
@@ -12,6 +12,7 @@ import ObjectInspector from "./ObjectInspector";
 import ProfileModal from "./ProfileModal";
 import HouseMapModal from "./HouseMapModal";
 import DialogueBox from "./DialogueBox";
+import WorkModeOverlay from "./WorkModeOverlay";
 import {
   HOST_FIRST_MEETING_LINES,
   HOST_REFUSAL_RESPONSE_LINE,
@@ -74,14 +75,25 @@ export const INTRO_SCREENS = {
       },
     ],
   },
+  choice: {
+    title: "Master of the House",
+    text: "You can wander freely through the house to discover projects in their spatial contexts, or if you have a specific job to do, head straight to the portfolio.",
+    buttonText: "Play house",
+    lines: [
+      {
+        speaker: "Master of the House",
+        text: "You can wander freely through the house to discover projects in their spatial contexts, or if you have a specific job to do, head straight to the portfolio.",
+      },
+    ],
+  },
   instructions: {
     title: "Master of the House",
-    text: "Walk around. Click on blue items to see projects.",
+    text: "When you're near a blue object, press E to interact with it and explore what's inside.",
     buttonText: "OK",
     lines: [
       {
         speaker: "Master of the House",
-        text: "Walk around. Click on blue items to see projects.",
+        text: "When you're near a blue object, press E to interact with it and explore what's inside.",
       },
     ],
   },
@@ -171,11 +183,27 @@ function checkLineOfSight(
   return true;
 }
 
-export default function AsciiHouse() {
+interface AsciiHouseProps {
+  initialMode?: "wander" | "work";
+}
+
+export default function AsciiHouse({ initialMode = "wander" }: AsciiHouseProps = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const navigatorRef = useRef<FirstPersonNavigator | null>(null);
 
-  const [mode, setMode] = useState<"wander" | "work">("wander");
+  const [mode, setMode] = useState<"wander" | "work">(initialMode);
+  const [selectedWorkProjectId, setSelectedWorkProjectId] = useState<string | null>(null);
+
+  // References for return-to-play-house navigation
+  const savedPlayHouseStateRef = useRef<{
+    x: number;
+    y: number;
+    z: number;
+    yaw: number;
+    pitch: number;
+  } | null>(null);
+  const latestSelectedProjectRoomRef = useRef<string | null>(null);
+
   const [webGLError, setWebGLError] = useState<string | null>(null);
   const [telemetry, setTelemetry] = useState<ControlTelemetry>({
     x: 0,
@@ -207,9 +235,12 @@ export default function AsciiHouse() {
     return false;
   });
 
-  // Mandatory Three-Stage Introduction State Machine
-  // Transitions: welcome --OK--> instructions --OK--> warning --knock knock--> playing
-  const [introStage, setIntroStage] = useState<"welcome" | "instructions" | "warning" | "playing">("welcome");
+  // Four-Stage Opening Introduction State Machine
+  // Transitions: welcome --OK--> choice --[Play house]--> instructions --OK--> warning --knock knock--> playing
+  // Or: choice --[I have work to do]--> Work Mode directly (skips instructions & warning)
+  const [introStage, setIntroStage] = useState<"welcome" | "choice" | "instructions" | "warning" | "playing">(
+    initialMode === "work" ? "playing" : "welcome"
+  );
 
   // Ensure fresh session clears legacy dialogue flags so all narrative interactions work
   useEffect(() => {
@@ -231,7 +262,7 @@ export default function AsciiHouse() {
   }, []);
 
   // Explicit, authoritative stage advance handler
-  const advanceIntroFrom = useCallback((fromStage: "welcome" | "instructions" | "warning") => {
+  const advanceIntroFrom = useCallback((fromStage: "welcome" | "choice" | "instructions" | "warning") => {
     setIntroStage((prev) => {
       if (prev !== fromStage) {
         if (DEBUG_DIALOGUE) {
@@ -239,8 +270,10 @@ export default function AsciiHouse() {
         }
         return prev;
       }
-      let nextStage: "welcome" | "instructions" | "warning" | "playing" = "welcome";
+      let nextStage: "welcome" | "choice" | "instructions" | "warning" | "playing" = "welcome";
       if (fromStage === "welcome") {
+        nextStage = "choice";
+      } else if (fromStage === "choice") {
         nextStage = "instructions";
       } else if (fromStage === "instructions") {
         nextStage = "warning";
@@ -252,6 +285,19 @@ export default function AsciiHouse() {
       }
       return nextStage;
     });
+  }, []);
+
+  const handleIntroGoToWork = useCallback(() => {
+    if (DEBUG_DIALOGUE) {
+      console.log(`[Dialogue] Visitor selected [I have work to do] -> transitioning directly to Work Mode`);
+    }
+    setIntroStage("playing");
+    if (navigatorRef.current) {
+      savedPlayHouseStateRef.current = navigatorRef.current.getCameraTransform();
+      navigatorRef.current.exitLock();
+      navigatorRef.current.enabled = false;
+    }
+    setMode("work");
   }, []);
 
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
@@ -986,11 +1032,46 @@ export default function AsciiHouse() {
     }
   }, []);
 
-  const handleToggleMode = useCallback((newMode: "wander" | "work") => {
-    if (newMode === "work" && navigatorRef.current) {
-      navigatorRef.current.exitLock();
+  const handleToggleMode = useCallback(
+    (newMode: "wander" | "work") => {
+      if (newMode === mode) return;
+
+      if (newMode === "work") {
+        // Transitioning from Play House -> Work Mode
+        if (navigatorRef.current) {
+          savedPlayHouseStateRef.current = navigatorRef.current.getCameraTransform();
+          navigatorRef.current.exitLock();
+          navigatorRef.current.enabled = false;
+        }
+        setMode("work");
+      } else {
+        // Transitioning from Work Mode -> Play House
+        if (navigatorRef.current) {
+          // Return-to-Play-House exact logic:
+          // 1. One or more projects selected: return to room associated with the most recently selected project
+          if (latestSelectedProjectRoomRef.current) {
+            navigatorRef.current.teleportToRoom(latestSelectedProjectRoomRef.current);
+            latestSelectedProjectRoomRef.current = null;
+          } else if (savedPlayHouseStateRef.current) {
+            // 2. No project selected in Work Mode: restore exact position & orientation from before entering Work Mode
+            navigatorRef.current.restoreCameraTransform(savedPlayHouseStateRef.current);
+          }
+          navigatorRef.current.enabled = true;
+        }
+        setMode("wander");
+      }
+    },
+    [mode]
+  );
+
+  const handleSelectProjectInWorkMode = useCallback((projectId: string) => {
+    setSelectedWorkProjectId(projectId);
+    const targetRoomId = get3DRoomIdForProject(projectId);
+    latestSelectedProjectRoomRef.current = targetRoomId;
+
+    if (navigatorRef.current) {
+      navigatorRef.current.navigateToRoomCamera(targetRoomId, 0.8);
     }
-    setMode(newMode);
   }, []);
 
   // Host name submission & refusal handlers (within same first-meeting sequence)
@@ -1057,6 +1138,9 @@ export default function AsciiHouse() {
         setIsPortraitScoldQueued(false);
       }
 
+      // In Work Mode, suppress Host dialogue commentary while preserving all state cleanup
+      if (mode === "work") return;
+
       if (introStage !== "playing") {
         if (DEBUG_DIALOGUE) {
           console.warn("[Dialogue] Blocked handleCloseObjectModal: introStage is not playing", introStage);
@@ -1102,11 +1186,12 @@ export default function AsciiHouse() {
         }
       }
     },
-    [hasMetHost, inspectedCounts, playerName, introStage]
+    [hasMetHost, inspectedCounts, playerName, introStage, mode]
   );
 
   const handleCloseProjectDirectory = useCallback(() => {
     setIsProjectDirectoryOpen(false);
+    if (mode === "work") return;
     if (!hasSeenStudyComputerPostDialogue) {
       setHasSeenStudyComputerPostDialogue(true);
       if (typeof window !== "undefined") {
@@ -1128,7 +1213,7 @@ export default function AsciiHouse() {
     } else {
       handleCloseObjectModal("obj-study-computer", "Terminal Workstation");
     }
-  }, [hasSeenStudyComputerPostDialogue, handleCloseObjectModal]);
+  }, [hasSeenStudyComputerPostDialogue, handleCloseObjectModal, mode]);
 
   // Full screen inspection modals that require pausing movement and freeing cursor
   const isFullScreenModalOpen =
@@ -1143,14 +1228,15 @@ export default function AsciiHouse() {
   const isAnyModalOpen =
     isFullScreenModalOpen ||
     introStage !== "playing" ||
-    !!hostDialogueConfig;
+    !!hostDialogueConfig ||
+    mode === "work";
 
   const handleRequestPointerLock = useCallback(() => {
-    if (isFullScreenModalOpen || introStage !== "playing") return;
+    if (isFullScreenModalOpen || introStage !== "playing" || mode === "work") return;
     if (navigatorRef.current) {
       navigatorRef.current.requestLock();
     }
-  }, [isFullScreenModalOpen, introStage]);
+  }, [isFullScreenModalOpen, introStage, mode]);
 
   const [hasEnteredHouse, setHasEnteredHouse] = useState<boolean>(false);
 
@@ -1162,21 +1248,22 @@ export default function AsciiHouse() {
   }, [telemetry.currentRoomId, telemetry.z]);
 
   const handleEnterHouse = useCallback(() => {
+    if (mode === "work") return;
     setHasEnteredHouse(true);
     handleRequestPointerLock();
-  }, [handleRequestPointerLock]);
+  }, [handleRequestPointerLock, mode]);
 
   // Full-screen modals, opening introduction, and dialogues disable navigation and exit pointer lock
   useEffect(() => {
     if (navigatorRef.current) {
-      const isBlocked = isFullScreenModalOpen || introStage !== "playing" || !!hostDialogueConfig;
+      const isBlocked = isFullScreenModalOpen || introStage !== "playing" || !!hostDialogueConfig || mode === "work";
       navigatorRef.current.enabled = !isBlocked;
       if (isBlocked) {
         navigatorRef.current.exitLock();
         navigatorRef.current.resetMovement();
       }
     }
-  }, [isFullScreenModalOpen, introStage, hostDialogueConfig]);
+  }, [isFullScreenModalOpen, introStage, hostDialogueConfig, mode]);
 
   // Context-sensitive input lock: only exit lock if an interactive name prompt or refusal response requires cursor clicking
   useEffect(() => {
@@ -4907,7 +4994,7 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
         toastMessage={toastMessage}
       />
 
-      {/* Mandatory Three-Stage Opening Introduction */}
+      {/* Mandatory Opening Introduction Sequence */}
       {introStage !== "playing" && (
         <>
           {/* Full-screen blocking backdrop: absorbs clicks so 3D scene and HUD never receive input */}
@@ -4928,7 +5015,21 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
             hideCloseButton={true}
             disableKeyboardAdvance={true}
             appearanceCount={1}
-            onComplete={() => advanceIntroFrom(introStage as "welcome" | "instructions" | "warning")}
+            customActions={
+              introStage === "choice"
+                ? [
+                    {
+                      label: "Play house",
+                      onClick: () => advanceIntroFrom("choice"),
+                    },
+                    {
+                      label: "I have work to do",
+                      onClick: handleIntroGoToWork,
+                    },
+                  ]
+                : undefined
+            }
+            onComplete={() => advanceIntroFrom(introStage as "welcome" | "choice" | "instructions" | "warning")}
           />
         </>
       )}
@@ -5021,6 +5122,26 @@ addBox(1.0, 0.6, 1.0, -19.5, 3.5, -17.1, treeCanopyMaterial3);
       <ProjectDirectoryModal
         isOpen={isProjectDirectoryOpen}
         onClose={handleCloseProjectDirectory}
+      />
+
+      {/* Work Mode Portfolio Workspace Overlay */}
+      <WorkModeOverlay
+        isOpen={mode === "work"}
+        onClose={() => handleToggleMode("wander")}
+        onSelectProject={handleSelectProjectInWorkMode}
+        currentRoomId={telemetry.currentRoomId}
+        selectedProjectId={selectedWorkProjectId}
+        onSelectProjectId={setSelectedWorkProjectId}
+        onOpenObjectInspector={(obj) => setInspectedObject(obj)}
+        onOpenProjectDirectory={() => setIsProjectDirectoryOpen(true)}
+        onOpenProfile={() => setIsProfileOpen(true)}
+        onOpenMap={() => setIsMapOpen(true)}
+        onNavigateToRoom={(roomId) => {
+          latestSelectedProjectRoomRef.current = roomId;
+          if (navigatorRef.current) {
+            navigatorRef.current.navigateToRoomCamera(roomId, 0.8);
+          }
+        }}
       />
     </div>
   );

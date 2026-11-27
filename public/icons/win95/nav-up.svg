@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" shape-rendering="crispEdges">
+  <!-- Windows 95 Up Folder Toolbar Icon -->
+  <!-- Small Folder Base -->
+  <path d="M 2 5 L 6 5 L 8 7 L 14 7 L 14 14 L 2 14 Z" fill="#000000" />
+  <rect x="3" y="8" width="10" height="5" fill="#ffd700" />
+  <line x1="3" y1="8" x2="12" y2="8" stroke="#ffffe0" stroke-width="1" />
+  
+  <!-- Up Arrow Overlay (Green / Black) -->
+  <polygon points="5,6 8,2 11,6" fill="#000000" />
+  <polygon points="6,5 8,3 10,5" fill="#00aa00" />
+  <rect x="7" y="5" width="2" height="4" fill="#000000" />
+  <rect x="7" y="5" width="2" height="3" fill="#00aa00" />
+</svg>

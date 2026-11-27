@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" shape-rendering="crispEdges">
+  <!-- Windows 95 Dog-Eared Text Document Icon -->
+  <!-- Outer Shadow / Black Border -->
+  <path d="M 6 3 L 20 3 L 26 9 L 26 29 L 6 29 Z" fill="#000000" />
+  <!-- White Sheet Body -->
+  <path d="M 7 4 L 19 4 L 19 10 L 25 10 L 25 28 L 7 28 Z" fill="#ffffff" />
+  <!-- Folded Corner Shadow & Flap -->
+  <polygon points="19,4 19,10 25,10" fill="#c0c0c0" />
+  <line x1="19" y1="4" x2="25" y2="10" stroke="#000000" stroke-width="1" />
+  
+  <!-- Text lines (Navy / Dark Blue) -->
+  <line x1="9" y1="8" x2="16" y2="8" stroke="#000080" stroke-width="1" />
+  <line x1="9" y1="12" x2="22" y2="12" stroke="#000080" stroke-width="1" />
+  <line x1="9" y1="15" x2="23" y2="15" stroke="#000080" stroke-width="1" />
+  <line x1="9" y1="18" x2="21" y2="18" stroke="#000080" stroke-width="1" />
+  <line x1="9" y1="21" x2="23" y2="21" stroke="#000080" stroke-width="1" />
+  <line x1="9" y1="24" x2="17" y2="24" stroke="#000080" stroke-width="1" />
+</svg>

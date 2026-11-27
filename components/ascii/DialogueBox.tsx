@@ -44,6 +44,12 @@ export const UNPREDICTABLE_POSITIONS: string[] = [
   "bottom-20 right-4 sm:right-10",
 ];
 
+export interface DialogueAction {
+  label: string;
+  onClick: () => void;
+  primary?: boolean;
+}
+
 export interface DialogueBoxProps {
   isOpen: boolean;
   title?: string;
@@ -61,6 +67,7 @@ export interface DialogueBoxProps {
   instantText?: boolean;
   allowBackdropDismiss?: boolean;
   onBackdropClick?: () => void;
+  customActions?: DialogueAction[];
 }
 
 // Helper to render formatted dialogue text (supports markdown italics: *word* -> <em>word</em>)
@@ -96,6 +103,7 @@ export default function DialogueBox({
   instantText = true,
   allowBackdropDismiss = false,
   onBackdropClick,
+  customActions,
 }: DialogueBoxProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [nameInputValue, setNameInputValue] = useState("");
@@ -347,7 +355,26 @@ export default function DialogueBox({
           className="flex justify-end gap-2 pt-1.5 border-t border-[#808080]/30"
           onClick={(e) => e.stopPropagation()}
         >
-          {isLastNamePromptLine ? (
+          {customActions && customActions.length > 0 ? (
+            customActions.map((action, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  action.onClick();
+                }}
+                className="px-3.5 py-2 sm:py-1 text-xs sm:text-[11px] min-h-[44px] sm:min-h-[28px] font-sans font-bold text-black min-w-[85px] sm:min-w-[80px] text-center cursor-pointer flex items-center justify-center hover:bg-[#d8d8d8] active:border-t-black active:border-l-black active:border-b-white active:border-r-white"
+                style={{
+                  backgroundColor: "#c0c0c0",
+                  border: "2px solid",
+                  borderColor: "#ffffff #000000 #000000 #ffffff",
+                }}
+              >
+                {action.label}
+              </button>
+            ))
+          ) : isLastNamePromptLine ? (
             <>
               <button
                 type="button"

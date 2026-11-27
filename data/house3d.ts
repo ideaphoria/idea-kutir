@@ -568,3 +568,35 @@ export function getCollectibleData(objectId?: string): CollectibleObject | undef
   if (!objectId) return undefined;
   return COLLECTIBLE_OBJECTS[objectId];
 }
+
+/**
+ * Authoritative 3D scene room resolver for Work Mode portfolio projects.
+ * Maps project identifiers to verified scene rooms and camera positions in HOUSE_ROOMS_3D.
+ */
+export function get3DRoomIdForProject(projectId: string): string {
+  switch (projectId) {
+    case "selected-ui-ux":
+      return "study"; // Walnut executive desk & digital computer terminal
+    case "learning-from-place":
+    case "notes-from-the-field-kundapura":
+      return "living_room"; // Dining table with four 3D banana-leaf meals
+    case "the-hands-that-forgot":
+      return "bedroom_2"; // East Chamber with built-in library casework & reading chair
+    case "cetacean-communication-station":
+      return "living_room"; // Interactive illuminated aquarium exhibit with whale silhouette
+    case "monster-on-the-hill":
+    case "astrotak":
+    case "nagad":
+    case "ewallet":
+    case "triplo":
+      return "art_room"; // Studio easel, pinboard & signature-blue gallery wall
+    default: {
+      const p = PROJECTS[projectId];
+      if (p?.roomId && HOUSE_ROOMS_3D[p.roomId]) {
+        return p.roomId;
+      }
+      return "living_room";
+    }
+  }
+}
+

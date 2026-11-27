@@ -23,6 +23,20 @@ export type StairNavState =
   | "arriving_landing"
   | "guided_upper_ascent";
 
+export interface RoomCameraTransition {
+  active: boolean;
+  startX: number;
+  startY: number;
+  startZ: number;
+  startYaw: number;
+  targetX: number;
+  targetY: number;
+  targetZ: number;
+  targetYaw: number;
+  timer: number;
+  duration: number;
+}
+
 export class FirstPersonNavigator {
   private camera: THREE.PerspectiveCamera;
   private domElement: HTMLElement;
@@ -33,6 +47,7 @@ export class FirstPersonNavigator {
   public stairProgress = 0.0;
   private landingArrivalTimer = 0.0;
   private readonly LANDING_ARRIVAL_DURATION = 0.35;
+  private cameraTransition?: RoomCameraTransition;
   private moveForward = false;
   private moveBackward = false;
   private moveLeft = false;
@@ -118,6 +133,9 @@ export class FirstPersonNavigator {
 
   private handlePointerLockChange() {
     this.isLocked = document.pointerLockElement === this.domElement;
+    if (!this.isLocked) {
+      this.resetMovement();
+    }
   }
 
   private handleMouseDown(e: MouseEvent) {
@@ -485,6 +503,7 @@ export class FirstPersonNavigator {
   }
 
   public teleportTo(x: number, y: number, z: number, yaw: number) {
+    this.cameraTransition = undefined;
     this.camera.position.set(x, y, z);
     this.playerFloorY = Math.max(0, y - 1.7);
     this.euler.set(0, yaw, 0, "YXZ");
@@ -497,6 +516,60 @@ export class FirstPersonNavigator {
     if (room) {
       this.teleportTo(room.spawnPoint.x, room.spawnPoint.y, room.spawnPoint.z, room.spawnPoint.yaw);
     }
+  }
+
+  public getCameraTransform(): { x: number; y: number; z: number; yaw: number; pitch: number } {
+    return {
+      x: this.camera.position.x,
+      y: this.camera.position.y,
+      z: this.camera.position.z,
+      yaw: this.euler.y,
+      pitch: this.euler.x,
+    };
+  }
+
+  public restoreCameraTransform(transform: { x: number; y: number; z: number; yaw: number; pitch?: number }) {
+    this.cameraTransition = undefined;
+    this.camera.position.set(transform.x, transform.y, transform.z);
+    this.playerFloorY = Math.max(0, transform.y - 1.7);
+    this.euler.set(transform.pitch ?? 0, transform.yaw, 0, "YXZ");
+    this.camera.quaternion.setFromEuler(this.euler);
+    this.velocity.set(0, 0, 0);
+  }
+
+  /**
+   * Dedicated room-camera navigation for Work Mode project selection.
+   * Smoothly interpolates the background camera without simulating player movement,
+   * triggering collision bounds, or firing proximity interaction traps.
+   */
+  public navigateToRoomCamera(roomId: string, duration = 0.8) {
+    const room = HOUSE_ROOMS_3D[roomId];
+    if (!room) return;
+
+    const target = room.spawnPoint;
+    if (duration <= 0) {
+      this.teleportTo(target.x, target.y, target.z, target.yaw);
+      return;
+    }
+
+    // Shortest angular path around yaw
+    let deltaYaw = target.yaw - this.euler.y;
+    while (deltaYaw > Math.PI) deltaYaw -= 2 * Math.PI;
+    while (deltaYaw < -Math.PI) deltaYaw += 2 * Math.PI;
+
+    this.cameraTransition = {
+      active: true,
+      startX: this.camera.position.x,
+      startY: this.camera.position.y,
+      startZ: this.camera.position.z,
+      startYaw: this.euler.y,
+      targetX: target.x,
+      targetY: target.y,
+      targetZ: target.z,
+      targetYaw: this.euler.y + deltaYaw,
+      timer: 0,
+      duration,
+    };
   }
 
   /**
@@ -555,8 +628,62 @@ export class FirstPersonNavigator {
   }
 
   public update(delta: number) {
+    // 0. Dedicated Room-Camera Navigation (Work Mode project transitions)
+    if (this.cameraTransition?.active) {
+      this.cameraTransition.timer += delta;
+      const t = Math.min(1.0, this.cameraTransition.timer / this.cameraTransition.duration);
+      // Smooth sinusoidal ease-in-out
+      const easeT = 0.5 - 0.5 * Math.cos(t * Math.PI);
+
+      const curX = this.cameraTransition.startX + (this.cameraTransition.targetX - this.cameraTransition.startX) * easeT;
+      const curY = this.cameraTransition.startY + (this.cameraTransition.targetY - this.cameraTransition.startY) * easeT;
+      const curZ = this.cameraTransition.startZ + (this.cameraTransition.targetZ - this.cameraTransition.startZ) * easeT;
+      const curYaw = this.cameraTransition.startYaw + (this.cameraTransition.targetYaw - this.cameraTransition.startYaw) * easeT;
+
+      this.camera.position.set(curX, curY, curZ);
+      this.playerFloorY = Math.max(0, curY - 1.7);
+      this.euler.set(0, curYaw, 0, "YXZ");
+      this.camera.quaternion.setFromEuler(this.euler);
+      this.velocity.set(0, 0, 0);
+
+      if (t >= 1.0) {
+        this.cameraTransition.active = false;
+        this.camera.position.set(this.cameraTransition.targetX, this.cameraTransition.targetY, this.cameraTransition.targetZ);
+        this.euler.set(0, this.cameraTransition.targetYaw, 0, "YXZ");
+        this.camera.quaternion.setFromEuler(this.euler);
+      }
+
+      if (this.onTelemetryUpdate) {
+        const yawDeg = Math.round(((-this.euler.y * 180) / Math.PI + 360) % 360);
+        const detectedRoom = this.detectCurrentRoom(this.camera.position.x, this.camera.position.z, this.camera.position.y);
+        this.onTelemetryUpdate({
+          x: this.camera.position.x,
+          y: this.camera.position.y,
+          z: this.camera.position.z,
+          yawDegrees: yawDeg,
+          currentRoomId: detectedRoom,
+          isLocked: this.isLocked,
+        });
+      }
+      return;
+    }
+
     if (!this.enabled) {
       this.resetMovement();
+      this.velocity.set(0, 0, 0);
+      if (this.onTelemetryUpdate) {
+        const yawDeg = Math.round(((-this.euler.y * 180) / Math.PI + 360) % 360);
+        const detectedRoom = this.detectCurrentRoom(this.camera.position.x, this.camera.position.z, this.camera.position.y);
+        this.onTelemetryUpdate({
+          x: this.camera.position.x,
+          y: this.camera.position.y,
+          z: this.camera.position.z,
+          yawDegrees: yawDeg,
+          currentRoomId: detectedRoom,
+          isLocked: this.isLocked,
+        });
+      }
+      return;
     }
 
     const currentPos = this.camera.position;

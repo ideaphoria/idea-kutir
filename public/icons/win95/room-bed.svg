@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" shape-rendering="crispEdges">
+  <!-- Windows 95 Style Bed Icon -->
+  <!-- Headboard -->
+  <rect x="3" y="8" width="6" height="18" fill="#000000" />
+  <rect x="4" y="9" width="4" height="16" fill="#804000" />
+  <line x1="4" y1="9" x2="7" y2="9" stroke="#b06020" stroke-width="1" />
+  
+  <!-- Pillow -->
+  <rect x="8" y="11" width="6" height="5" fill="#000000" />
+  <rect x="9" y="12" width="4" height="3" fill="#ffffff" />
+  
+  <!-- Mattress / Blanket (Teal / Blue) -->
+  <rect x="8" y="14" width="18" height="10" fill="#000000" />
+  <rect x="9" y="15" width="16" height="8" fill="#008080" />
+  <!-- Folded sheet white rim -->
+  <rect x="9" y="15" width="3" height="8" fill="#ffffff" />
+  <!-- Blanket shading -->
+  <line x1="12" y1="15" x2="24" y2="15" stroke="#20b2aa" stroke-width="1" />
+  
+  <!-- Footboard -->
+  <rect x="25" y="13" width="4" height="13" fill="#000000" />
+  <rect x="26" y="14" width="2" height="11" fill="#804000" />
+  <!-- Legs -->
+  <rect x="4" y="24" width="2" height="4" fill="#000000" />
+  <rect x="26" y="24" width="2" height="4" fill="#000000" />
+</svg>

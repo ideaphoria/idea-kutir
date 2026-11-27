@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { HOUSE_ROOMS_3D, InteractiveObject3D } from "@/data/house3d";
 import { ControlTelemetry } from "./FirstPersonControls";
+import ModeToggle from "./ModeToggle";
 
 interface AsciiHUDProps {
   telemetry: ControlTelemetry;
@@ -49,7 +50,7 @@ export default function AsciiHUD({
 
   return (
     <div
-      className="absolute inset-0 pointer-events-none select-none font-mono text-xs flex flex-col justify-between p-2 sm:p-4 md:p-6 text-[#d8d3c7]"
+      className="absolute inset-0 z-50 pointer-events-none select-none font-mono text-xs flex flex-col justify-between p-2 sm:p-4 md:p-6 text-[#d8d3c7]"
       style={{
         paddingTop: "max(0.5rem, env(safe-area-inset-top, 0px))",
         paddingBottom: "max(0.5rem, env(safe-area-inset-bottom, 0px))",
@@ -80,7 +81,7 @@ export default function AsciiHUD({
         {/* Action Shortcuts & Mode Switcher */}
         <div className="flex items-center gap-1.5">
           {/* Inventory Quick Button */}
-          {onOpenInventory && (
+          {mode === "wander" && onOpenInventory && (
             <button
               type="button"
               onClick={onOpenInventory}
@@ -96,7 +97,7 @@ export default function AsciiHUD({
           )}
 
           {/* Directory Quick Button */}
-          {onOpenNavigation && (
+          {mode === "wander" && onOpenNavigation && (
             <button
               type="button"
               onClick={onOpenNavigation}
@@ -110,19 +111,7 @@ export default function AsciiHUD({
           )}
 
           {/* Mode Switcher */}
-          <div className="flex items-center bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black p-0.5 shadow-sm gap-0.5">
-            <span className="px-2.5 py-0.5 bg-[#dcdcdc] border-2 border-t-black border-l-black border-b-white border-r-white text-black font-sans font-bold text-[11px] select-none shadow-inner">
-              Wander
-            </span>
-            <a
-              href="/work"
-              className="px-2.5 py-0.5 bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black active:border-t-black active:border-l-black active:border-b-white active:border-r-white text-black font-sans font-bold text-[11px] hover:bg-[#d4d4d4] flex items-center gap-1 select-none"
-              title="Switch to Professional Portfolio (Work Mode)"
-            >
-              <span>Work</span>
-              <span className="text-[#224294] font-bold">&rarr;</span>
-            </a>
-          </div>
+          <ModeToggle mode={mode} onToggleMode={onToggleMode} />
         </div>
       </header>
 
@@ -138,155 +127,158 @@ export default function AsciiHUD({
       {/* ─────────────────────────────────────────────────────────────
           CENTER RETICLE & OBJECT PROXIMITY PROMPT
           ───────────────────────────────────────────────────────────── */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none font-sans">
-        {/* Reticle */}
-        {!isInspecting && (
-          <div
-            className={`transition-all duration-150 ${
-              hoveredObject
-                ? "text-white font-mono font-bold text-base bg-black/60 px-1 border border-white"
-                : "text-white/60 font-mono text-base"
-            }`}
-          >
-            {hoveredObject ? "[ + ]" : "+"}
-          </div>
-        )}
-
-        {/* Proximity Prompt (Retro Windows 95 tooltip / alert) */}
-        {hoveredObject && !isInspecting && (
-          <div className="mt-4 pointer-events-auto">
+      {mode === "wander" && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none font-sans">
+          {/* Reticle */}
+          {!isInspecting && (
             <div
-              onClick={() => onInteract?.()}
-              role="button"
-              tabIndex={0}
-              className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black shadow-[2px_2px_0px_rgba(0,0,0,0.7)] p-2 text-center cursor-pointer font-sans min-w-[220px]"
+              className={`transition-all duration-150 ${
+                hoveredObject
+                  ? "text-white font-mono font-bold text-base bg-black/60 px-1 border border-white"
+                  : "text-white/60 font-mono text-base"
+              }`}
             >
-              <div className="bg-gradient-to-r from-[#13265C] via-[#436ECC] to-[#769EFD] text-white text-[11px] font-bold px-2 py-0.5 mb-1.5 flex justify-between items-center select-none">
-                <span>INTERACT</span>
-                <span className="font-mono text-yellow-300 font-bold">[ E ]</span>
-              </div>
-              <div className="border border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white p-2">
-                <div className="text-xs font-bold text-black">{hoveredObject.name}</div>
-                <div className="text-[11px] text-[#555] italic mt-0.5">
-                  {hoveredObject.destinationUrl || hoveredObject.id.startsWith("obj-living-dining-")
-                    ? "Click or press E to view"
-                    : hoveredObject.id === "obj-hallway-portrait"
-                    ? "Click or press E to view profile"
-                    : "Click or press E to inspect"}
+              {hoveredObject ? "[ + ]" : "+"}
+            </div>
+          )}
+
+          {/* Proximity Prompt (Retro Windows 95 tooltip / alert) */}
+          {hoveredObject && !isInspecting && (
+            <div className="mt-4 pointer-events-auto">
+              <div
+                onClick={() => onInteract?.()}
+                role="button"
+                tabIndex={0}
+                className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black shadow-[2px_2px_0px_rgba(0,0,0,0.7)] p-2 text-center cursor-pointer font-sans min-w-[220px]"
+              >
+                <div className="bg-gradient-to-r from-[#13265C] via-[#436ECC] to-[#769EFD] text-white text-[11px] font-bold px-2 py-0.5 mb-1.5 flex justify-between items-center select-none">
+                  <span>INTERACT</span>
+                  <span className="font-mono text-yellow-300 font-bold">[ E ]</span>
+                </div>
+                <div className="border border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white p-2">
+                  <div className="text-xs font-bold text-black">{hoveredObject.name}</div>
+                  <div className="text-[11px] text-[#555] italic mt-0.5">
+                    {hoveredObject.destinationUrl || hoveredObject.id.startsWith("obj-living-dining-")
+                      ? "Click or press E to view"
+                      : hoveredObject.id === "obj-hallway-portrait"
+                      ? "Click or press E to view profile"
+                      : "Click or press E to inspect"}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Start Gameplay / Pointer Lock Banner (Retro Welcome Dialog)
-            Appears ONLY when the player is genuinely outside the house in the exterior entry area */}
-        {telemetry.currentRoomId === "exterior" &&
-          telemetry.z >= 0.5 &&
-          !telemetry.isLocked &&
-          !hasEnteredHouse &&
-          mode === "wander" &&
-          !isInspecting &&
-          !hoveredObject && (
-          <div
-            className="mt-2 sm:mt-6 pointer-events-auto z-30"
-            data-touch-bypass="true"
-          >
-            <div className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black p-2.5 sm:p-4 shadow-[2px_2px_0px_rgba(0,0,0,0.7)] text-center max-w-[280px] sm:max-w-sm font-sans">
-              <div className="bg-gradient-to-r from-[#13265C] via-[#436ECC] to-[#769EFD] text-white text-[11px] sm:text-xs font-bold px-2 py-0.5 sm:py-1 mb-1.5 sm:mb-2.5 select-none">
-                IDEA KUTIR — 3D ARCHITECTURAL ARCHIVE
-              </div>
-              <div className="border border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white p-2 sm:p-3 mb-2 sm:mb-3">
-                <p className="text-[11px] sm:text-xs text-black leading-relaxed">
-                  Click anywhere or press WASD to start exploring the house.
-                </p>
-              </div>
-              <button
-                type="button"
-                data-touch-bypass="true"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEnterHouse ? onEnterHouse() : onRequestPointerLock();
-                }}
-                onTouchEnd={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  onEnterHouse ? onEnterHouse() : onRequestPointerLock();
-                }}
-                className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black active:border-t-black active:border-l-black active:border-b-white active:border-r-white py-1 px-3 sm:px-4 text-[11px] sm:text-xs font-bold text-black shadow-sm inline-block cursor-pointer select-none"
-              >
-                [ ENTER HOUSE ]
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ─────────────────────────────────────────────────────────────
-          BOTTOM BAR: CONTROLS LEGEND & TELEMETRY
-          ───────────────────────────────────────────────────────────── */}
-      <footer className="w-full hidden lg:flex flex-col sm:flex-row items-end sm:items-center justify-between gap-3 pointer-events-auto font-sans">
-        {/* Controls Legend (Retro Utility Window) - Shown on desktop */}
-        <div className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black p-1 shadow-[2px_2px_0px_rgba(0,0,0,0.7)] w-64 pointer-events-auto text-[11px] text-black">
-          <div className="h-5 px-1 bg-gradient-to-r from-[#13265C] via-[#436ECC] to-[#769EFD] text-white font-bold flex items-center justify-between select-none">
-            <span className="text-[10px] tracking-wide">CONTROLS.INI</span>
-            <button
-              type="button"
-              onClick={() => setIsLegendMinimized(!isLegendMinimized)}
-              className="w-3.5 h-3.5 bg-[#c0c0c0] border border-t-white border-l-white border-b-black border-r-black text-black font-bold text-[8px] flex items-center justify-center leading-none cursor-pointer"
-              title={isLegendMinimized ? "Restore" : "Minimize"}
+          {/* Start Gameplay / Pointer Lock Banner (Retro Welcome Dialog)
+              Appears ONLY when the player is genuinely outside the house in the exterior entry area */}
+          {telemetry.currentRoomId === "exterior" &&
+            telemetry.z >= 0.5 &&
+            !telemetry.isLocked &&
+            !hasEnteredHouse &&
+            !isInspecting &&
+            !hoveredObject && (
+            <div
+              className="mt-2 sm:mt-6 pointer-events-auto z-30"
+              data-touch-bypass="true"
             >
-              {isLegendMinimized ? "▲" : "▼"}
-            </button>
-          </div>
-          {!isLegendMinimized && (
-            <div className="border border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white p-2 mt-1 space-y-1">
-              <div className="flex justify-between">
-                <span className="font-bold">W A S D</span>
-                <span className="text-[#555]">Move</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-bold">MOUSE</span>
-                <span className="text-[#555]">Look around</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-bold">E</span>
-                <span className="text-[#555]">Inspect / Interact</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-bold">I</span>
-                <span className="text-[#555]">Satchel</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-bold">TAB</span>
-                <span className="text-[#555]">Directory</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-bold">M</span>
-                <span className="text-[#555]">Blueprint Map</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-bold">1 – 5</span>
-                <span className="text-[#555]">Quick Travel</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-bold">ESC</span>
-                <span className="text-[#555]">Free Mouse</span>
+              <div className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black p-2.5 sm:p-4 shadow-[2px_2px_0px_rgba(0,0,0,0.7)] text-center max-w-[280px] sm:max-w-sm font-sans">
+                <div className="bg-gradient-to-r from-[#13265C] via-[#436ECC] to-[#769EFD] text-white text-[11px] sm:text-xs font-bold px-2 py-0.5 sm:py-1 mb-1.5 sm:mb-2.5 select-none">
+                  IDEA KUTIR — 3D ARCHITECTURAL ARCHIVE
+                </div>
+                <div className="border border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white p-2 sm:p-3 mb-2 sm:mb-3">
+                  <p className="text-[11px] sm:text-xs text-black leading-relaxed">
+                    Click anywhere or press WASD to start exploring the house.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  data-touch-bypass="true"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEnterHouse ? onEnterHouse() : onRequestPointerLock();
+                  }}
+                  onTouchEnd={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onEnterHouse ? onEnterHouse() : onRequestPointerLock();
+                  }}
+                  className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black active:border-t-black active:border-l-black active:border-b-white active:border-r-white py-1 px-3 sm:px-4 text-[11px] sm:text-xs font-bold text-black shadow-sm inline-block cursor-pointer select-none"
+                >
+                  [ ENTER HOUSE ]
+                </button>
               </div>
             </div>
           )}
         </div>
+      )}
 
-        {/* Spatial Telemetry Status Pane on bottom-right */}
-        <div className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black p-1 shadow-md flex items-center gap-1 text-[11px] text-black">
-          <div className="border border-t-[#808080] border-l-[#808080] border-b-white border-r-white px-2 py-0.5 bg-white font-mono">
-            POS: X {telemetry.x.toFixed(1)} &middot; Z {telemetry.z.toFixed(1)}
+      {/* ─────────────────────────────────────────────────────────────
+          BOTTOM BAR: CONTROLS LEGEND & TELEMETRY
+          ───────────────────────────────────────────────────────────── */}
+      {mode === "wander" && (
+        <footer className="w-full hidden lg:flex flex-col sm:flex-row items-end sm:items-center justify-between gap-3 pointer-events-auto font-sans">
+          {/* Controls Legend (Retro Utility Window) - Shown on desktop */}
+          <div className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black p-1 shadow-[2px_2px_0px_rgba(0,0,0,0.7)] w-64 pointer-events-auto text-[11px] text-black">
+            <div className="h-5 px-1 bg-gradient-to-r from-[#13265C] via-[#436ECC] to-[#769EFD] text-white font-bold flex items-center justify-between select-none">
+              <span className="text-[10px] tracking-wide">CONTROLS.INI</span>
+              <button
+                type="button"
+                onClick={() => setIsLegendMinimized(!isLegendMinimized)}
+                className="w-3.5 h-3.5 bg-[#c0c0c0] border border-t-white border-l-white border-b-black border-r-black text-black font-bold text-[8px] flex items-center justify-center leading-none cursor-pointer"
+                title={isLegendMinimized ? "Restore" : "Minimize"}
+              >
+                {isLegendMinimized ? "▲" : "▼"}
+              </button>
+            </div>
+            {!isLegendMinimized && (
+              <div className="border border-t-[#808080] border-l-[#808080] border-b-white border-r-white bg-white p-2 mt-1 space-y-1">
+                <div className="flex justify-between">
+                  <span className="font-bold">W A S D</span>
+                  <span className="text-[#555]">Move</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-bold">MOUSE</span>
+                  <span className="text-[#555]">Look around</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-bold">E</span>
+                  <span className="text-[#555]">Inspect / Interact</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-bold">I</span>
+                  <span className="text-[#555]">Satchel</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-bold">TAB</span>
+                  <span className="text-[#555]">Directory</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-bold">M</span>
+                  <span className="text-[#555]">Blueprint Map</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-bold">1 – 5</span>
+                  <span className="text-[#555]">Quick Travel</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-bold">ESC</span>
+                  <span className="text-[#555]">Free Mouse</span>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="border border-t-[#808080] border-l-[#808080] border-b-white border-r-white px-2 py-0.5 bg-white font-mono">
-            HDG: {telemetry.yawDegrees}&deg;
+
+          {/* Spatial Telemetry Status Pane on bottom-right */}
+          <div className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-black border-r-black p-1 shadow-md flex items-center gap-1 text-[11px] text-black">
+            <div className="border border-t-[#808080] border-l-[#808080] border-b-white border-r-white px-2 py-0.5 bg-white font-mono">
+              POS: X {telemetry.x.toFixed(1)} &middot; Z {telemetry.z.toFixed(1)}
+            </div>
+            <div className="border border-t-[#808080] border-l-[#808080] border-b-white border-r-white px-2 py-0.5 bg-white font-mono">
+              HDG: {telemetry.yawDegrees}&deg;
+            </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      )}
     </div>
   );
 }

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" shape-rendering="crispEdges">
+  <!-- Windows 95 Style Desktop PC Computer Icon -->
+  <!-- Monitor Outer Casing Contour -->
+  <rect x="5" y="2" width="22" height="17" fill="#000000" />
+  <rect x="6" y="3" width="20" height="15" fill="#d4d0c8" />
+  <!-- 3D Bevel Highlights on Monitor Housing -->
+  <line x1="6" y1="3" x2="25" y2="3" stroke="#ffffff" stroke-width="1" />
+  <line x1="6" y1="3" x2="6" y2="17" stroke="#ffffff" stroke-width="1" />
+  <line x1="25" y1="4" x2="25" y2="17" stroke="#808080" stroke-width="1" />
+  <line x1="7" y1="17" x2="25" y2="17" stroke="#808080" stroke-width="1" />
+
+  <!-- CRT Screen Bezel (Recessed) -->
+  <rect x="8" y="5" width="16" height="11" fill="#000000" />
+  <!-- Screen Glass (Classic Windows Teal / Navy Blue) -->
+  <rect x="9" y="6" width="14" height="9" fill="#008080" />
+  <!-- CRT Screen Glass Reflection / Glare -->
+  <polygon points="9,6 14,6 10,14 9,14" fill="#20b2aa" opacity="0.7" />
+  <rect x="10" y="7" width="1" height="4" fill="#ffffff" opacity="0.8" />
+  <!-- Little Window / Terminal Prompt on screen -->
+  <rect x="12" y="8" width="8" height="5" fill="#ffffff" />
+  <rect x="12" y="8" width="8" height="2" fill="#000080" />
+  <line x1="14" y1="11" x2="18" y2="11" stroke="#000000" stroke-width="1" />
+
+  <!-- Monitor Power Button & LED -->
+  <rect x="22" y="16" width="2" height="1" fill="#00ff00" />
+  <rect x="19" y="16" width="2" height="1" fill="#808080" />
+
+  <!-- Monitor Swivel Neck / Pedestal Stand -->
+  <rect x="13" y="19" width="6" height="2" fill="#000000" />
+  <rect x="14" y="19" width="4" height="2" fill="#c0c0c0" />
+
+  <!-- Desktop PC Unit / Chassis Beneath Monitor -->
+  <rect x="3" y="21" width="26" height="5" fill="#000000" />
+  <rect x="4" y="22" width="24" height="3" fill="#d4d0c8" />
+  <line x1="4" y1="22" x2="27" y2="22" stroke="#ffffff" stroke-width="1" />
+  <!-- 3.5" Floppy Drive Slot -->
+  <rect x="18" y="23" width="7" height="1" fill="#000000" />
+  <rect x="16" y="23" width="1" height="1" fill="#008000" />
+  <!-- Power Switch on Case -->
+  <rect x="6" y="23" width="2" height="1" fill="#808080" />
+
+  <!-- Keyboard In Front -->
+  <polygon points="4,27 28,27 30,30 2,30" fill="#000000" />
+  <polygon points="5,28 27,28 29,29 3,29" fill="#d4d0c8" />
+  <!-- Key Grid -->
+  <rect x="6" y="28" width="15" height="1" fill="#808080" />
+  <rect x="23" y="28" width="4" height="1" fill="#808080" />
+</svg>
